@@ -17,18 +17,32 @@ from utils.visualize import visualize_save_pair
 # =                                 data                                       =
 # ==============================================================================
 
-train_data_txt = 'L:/ALASegmentationNets_v2/Data/Stage_4/train.txt'
-val_data_txt = 'L:/ALASegmentationNets_v2/Data/Stage_4/val.txt'
-test_data_txt = 'L:/ALASegmentationNets_v2/Data/Stage_4/test.txt'
+# train_data_txt = 'L:/ALASegmentationNets_v2/Data/Stage_4/train.txt'
+# val_data_txt = 'L:/ALASegmentationNets_v2/Data/Stage_4/val.txt'
+# test_data_txt = 'L:/ALASegmentationNets_v2/Data/Stage_4/test.txt'
+#
+# raw_train_dir = 'L:/ALASegmentationNets_v2/Data/Stage_4/train/img/'
+# raw_train_mask_dir = 'L:/ALASegmentationNets_v2/Data/Stage_4/train/mask/'
+#
+# raw_val_dir = 'L:/ALASegmentationNets_v2/Data/Stage_4/val/img/'
+# raw_val_mask_dir = 'L:/ALASegmentationNets_v2/Data/Stage_4/val/mask/'
+#
+# raw_test_dir = 'L:/ALASegmentationNets_v2/Data/Stage_4/test/img/'
+# raw_test_mask_dir = 'L:/ALASegmentationNets_v2/Data/Stage_4/test/mask/'
 
-raw_train_dir = 'L:/ALASegmentationNets_v2/Data/Stage_4/train/img/'
-raw_train_mask_dir = 'L:/ALASegmentationNets_v2/Data/Stage_4/train/mask/'
 
-raw_val_dir = 'L:/ALASegmentationNets_v2/Data/Stage_4/val/img/'
-raw_val_mask_dir = 'L:/ALASegmentationNets_v2/Data/Stage_4/val/mask/'
+train_data_txt = 'L:/crack segmentation in UAV images/Dataset/train.txt'
+val_data_txt = 'L:/crack segmentation in UAV images/Dataset/val.txt'
+test_data_txt = 'L:/crack segmentation in UAV images/Dataset/test.txt'
 
-raw_test_dir = 'L:/ALASegmentationNets_v2/Data/Stage_4/test/img/'
-raw_test_mask_dir = 'L:/ALASegmentationNets_v2/Data/Stage_4/test/mask/'
+raw_train_dir = 'L:/crack segmentation in UAV images/Dataset/train/img/'
+raw_train_mask_dir = 'L:/crack segmentation in UAV images/Dataset/train/mask/'
+
+raw_val_dir = 'L:/crack segmentation in UAV images/Dataset/val/img/'
+raw_val_mask_dir = 'L:/crack segmentation in UAV images/Dataset/val/mask/'
+
+raw_test_dir = 'L:/crack segmentation in UAV images/Dataset/test/img/'
+raw_test_mask_dir = 'L:/crack segmentation in UAV images/Dataset/test/mask/'
 
 
 def get_Motion_Image_Dataset(re_size, batch_size):
@@ -503,7 +517,7 @@ def train(training_model, optimizer, loss_fn, eval_fn,
                     "eval_fn": eval_fn,
                     "lr_schedule_state_dict": scheduler.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict()
-                }, os.path.join(save_checkpoint_path, str(epoch), '.pth'))
+                }, os.path.join(save_checkpoint_path, str(epoch) + '.pth'))
 
     if not comet:
         train_process(comet, experiment)

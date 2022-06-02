@@ -4,8 +4,9 @@ import cv2
 import os
 from scipy import signal
 from scipy import misc
-from generate_PSF import PSF
-from generate_trajectory import Trajectory
+from utils.motion_blur.generate_PSF import PSF
+from utils.motion_blur.generate_trajectory import Trajectory
+from utils.visualize import plot
 
 
 class BlurImage(object):
@@ -55,7 +56,7 @@ class BlurImage(object):
             for p in Psf:
                 tmp = np.pad(p, delta // 2, 'constant')
                 cv2.normalize(tmp, tmp, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-                # blured = np.zeros(self.shape)
+                blured = np.zeros(self.shape)
                 blured = cv2.normalize(self.original, self.original, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX,
                                        dtype=cv2.CV_32F)
                 blured[:, :, 0] = np.array(signal.fftconvolve(blured[:, :, 0], tmp, 'same'))
@@ -108,13 +109,17 @@ class BlurImage(object):
 
 
 if __name__ == '__main__':
-    folder = '/Users/mykolam/PycharmProjects/University/DeblurGAN2/results_sharp'
-    folder_to_save = '/Users/mykolam/PycharmProjects/University/DeblurGAN2/blured'
+    folder = r'L:\ALASegmentationNets_v2\Data\Stage_4\test\img/'
+    folder_to_save = './1.jpg'
     params = [0.01, 0.009, 0.008, 0.007, 0.005, 0.003]
     for path in os.listdir(folder):
         print(path)
         trajectory = Trajectory(canvas=64, max_len=60, expl=np.random.choice(params)).fit()
         psf = PSF(canvas=64, trajectory=trajectory).fit()
-        BlurImage(os.path.join(folder, path), PSFs=psf,
-                  path__to_save=folder_to_save, part=np.random.choice([1, 2, 3])). \
-            blur_image(save=True)
+        blur_image = BlurImage(os.path.join(folder, path), PSFs=psf, path__to_save=folder_to_save, part=np.random.choice([1, 2, 3]))
+        blur_image.blur_image(save=False, show=False)
+        o = blur_image.original
+        b = blur_image.result[0]
+        plot(o)
+        plot(b)
+

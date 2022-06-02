@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from generate_trajectory import Trajectory
+from utils.motion_blur.generate_trajectory import Trajectory
 
 
 class PSF(object):

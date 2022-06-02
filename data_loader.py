@@ -10,9 +10,7 @@ import torch
 import albumentations as A
 from torchvision import transforms
 from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
 
-import utils.visualize
 from utils.motion_process import *
 
 
@@ -20,6 +18,7 @@ transform = A.Compose([
     A.HorizontalFlip(p=0.5),
     A.VerticalFlip(p=0.5),
     A.RandomRotate90(p=0.5),
+    A.RandomCrop(224, 224)
 ])
 
 
@@ -51,11 +50,11 @@ class Motion_Blur_Dataset(Dataset):
         self.raw_image = cv2.imread(os.path.join(self.raw_image_path, self.file_list[item].split(',')[0]))
         self.raw_image = cv2.cvtColor(self.raw_image, cv2.COLOR_BGR2RGB)
         self.raw_image = cv2.resize(self.raw_image, self.re_size)
-        self.blur_image = get_motion_blur_image(self.raw_image, 45, 15)
-        self.blur_image = get_motion_blur_image(self.blur_image, 225, 15)
+        self.blur_image = get_motion_blur_image(self.raw_image, 0, 5)
+        self.blur_image = get_motion_blur_image(self.blur_image, 180, 5)
         # utils.visualize.plot(self.raw_image)
         # utils.visualize.plot(self.blur_image)
-        self.raw_mask = cv2.imread(os.path.join(self.raw_mask_path, self.file_list[item].split(',')[0]))
+        self.raw_mask = cv2.imread(os.path.join(self.raw_mask_path, self.file_list[item].split(',')[1]))
         self.raw_mask = torch.tensor(self.raw_mask[:, :, 0] > 127, dtype=torch.int8)
 
         if self.transform is None:
@@ -67,9 +66,3 @@ class Motion_Blur_Dataset(Dataset):
                 transforms.ToTensor()(self.blur_image), transforms.ToTensor()(self.raw_image)
 
         return self.blur_image, self.raw_image, self.raw_mask
-
-
-dataset = Motion_Blur_Dataset(raw_image_path='L:/ALASegmentationNets_v2/Data/Stage_4/train/img/',
-                              raw_mask_path='L:/ALASegmentationNets_v2/Data/Stage_4/train/mask/',
-                              re_size=(448, 448), data_txt='L:/ALASegmentationNets_v2/Data/Stage_4/train.txt')
-

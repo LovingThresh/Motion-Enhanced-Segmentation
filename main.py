@@ -35,8 +35,8 @@ train_comet = False
 hyper_params = {
     "ex_number"     : 'EDSR_3080Ti',
     "raw_size"      : (3, 448, 448),
-    "crop_size"     : (3, 448, 448),
-    "input_size"    : (3, 448, 448),
+    "crop_size"     : (3, 224, 224),
+    "input_size"    : (3, 224, 224),
     "batch_size"    : 4,
     "learning_rate" : 1e-4,
     "epochs"        : 200,
@@ -83,7 +83,7 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size)
 # ===============================================================================
 
 generator = define_G(3, 3, 64, 'resnet_9blocks')
-discriminator = define_D(3, 64, 'n_layers', 4, use_sigmoid=True)
+discriminator = define_D(3, 64, 'n_layers', 4)
 
 # model = ResNet(101, double_input=Img_Recon)
 # model.init_weights()
@@ -103,7 +103,7 @@ gan_loss = dict(
     fake_label_val=0.)
 gan_loss = mmcv.build_from_cfg(gan_loss, LOSSES)
 
-pixel_loss = dict(type='L1Loss', loss_weight=1e-2, reduction='mean')
+pixel_loss = dict(type='L1Loss', loss_weight=1e-2, reduction='sum')
 pixel_loss = mmcv.build_from_cfg(pixel_loss, LOSSES)
 
 loss_function_D = {'loss_function_BCE': nn.BCEWithLogitsLoss()}
@@ -156,11 +156,11 @@ val_writer   =  SummaryWriter('{}/valer_{}'.format(os.path.join(output_dir, 'sum
 # =                                    Training                                 =
 # ===============================================================================
 
-# train(model, optimizer_ft, loss_function, eval_function,
-#       train_loader, val_loader, Epochs, exp_lr_scheduler,
-#       device, threshold, output_dir, train_writer, val_writer, experiment, train_comet)
+train(generator, optimizer_ft_G, loss_function_G, eval_function_G,
+      train_loader, val_loader, Epochs, exp_lr_scheduler_G,
+      device, threshold, output_dir, train_writer, val_writer, experiment, train_comet)
 
-train_GAN(generator, discriminator, optimizer_ft_G, optimizer_ft_D,
-          loss_function_G_, loss_function_G, loss_function_D, exp_lr_scheduler_G, exp_lr_scheduler_D,
-          eval_function_G, eval_function_D, train_loader, val_loader, Epochs, device, threshold,
-          output_dir, train_writer, val_writer, experiment, train_comet)
+# train_GAN(generator, discriminator, optimizer_ft_G, optimizer_ft_D,
+#           loss_function_G_, loss_function_G, loss_function_D, exp_lr_scheduler_G, exp_lr_scheduler_D,
+#           eval_function_G, eval_function_D, train_loader, val_loader, Epochs, device, threshold,
+#           output_dir, train_writer, val_writer, experiment, train_comet)
