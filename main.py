@@ -6,12 +6,12 @@
 # @Software: PyCharm
 
 import mmcv
-import numpy as np
-import torchmetrics.functional
-from mmedit.models import MODELS
+
+# import torchmetrics.functional
+# from mmedit.models import MODELS
 from mmedit.models import LOSSES
 
-import torchsummary
+# import torchsummary
 import torchmetrics
 import torch.optim as optim
 
@@ -103,7 +103,7 @@ gan_loss = dict(
     fake_label_val=0.)
 gan_loss = mmcv.build_from_cfg(gan_loss, LOSSES)
 
-pixel_loss = dict(type='L1Loss', loss_weight=100, reduction='mean')
+pixel_loss = dict(type='L1Loss', loss_weight=1, reduction='mean')
 pixel_loss = mmcv.build_from_cfg(pixel_loss, LOSSES)
 
 perceptual_loss = dict(
@@ -113,20 +113,22 @@ perceptual_loss = dict(
         perceptual_weight=10.0,
         style_weight=0,
         norm_img=False)
+
 perceptual_loss = mmcv.build_from_cfg(perceptual_loss, LOSSES)
 
-loss_function_D = {'loss_function_BCE': nn.BCEWithLogitsLoss()}
+loss_function_D = {'loss_function_dis': gan_loss}
 
-loss_function_G_ = {'loss_function_gan': gan_loss}
+loss_function_G_ = {'loss_function_gen': gan_loss}
 
 loss_function_G = {'loss_function_l1': pixel_loss,
                    'perceptual_loss': perceptual_loss}
 
 eval_function_psnr = torchmetrics.functional.image.psnr.peak_signal_noise_ratio
 eval_function_ssim = torchmetrics.functional.image.ssim.structural_similarity_index_measure
-eval_function_mse = torchmetrics.functional.mean_squared_error
+eval_function_acc = torchmetrics.functional.accuracy
 
-eval_function_D = {'eval_function_mse': eval_function_mse}
+
+eval_function_D = {'eval_function_acc': eval_function_acc}
 eval_function_G = {'eval_function_psnr': eval_function_psnr,
                    'eval_function_ssim': eval_function_ssim}
 
@@ -167,11 +169,11 @@ val_writer   =  SummaryWriter('{}/valer_{}'.format(os.path.join(output_dir, 'sum
 # =                                    Training                                 =
 # ===============================================================================
 
-train(generator, optimizer_ft_G, loss_function_G, eval_function_G,
-      train_loader, val_loader, Epochs, exp_lr_scheduler_G,
-      device, threshold, output_dir, train_writer, val_writer, experiment, train_comet)
+# train(generator, optimizer_ft_G, loss_function_G, eval_function_G,
+#       train_loader, val_loader, Epochs, exp_lr_scheduler_G,
+#       device, threshold, output_dir, train_writer, val_writer, experiment, train_comet)
 
-# train_GAN(generator, discriminator, optimizer_ft_G, optimizer_ft_D,
-#           loss_function_G_, loss_function_G, loss_function_D, exp_lr_scheduler_G, exp_lr_scheduler_D,
-#           eval_function_G, eval_function_D, train_loader, val_loader, Epochs, device, threshold,
-#           output_dir, train_writer, val_writer, experiment, train_comet)
+train_GAN(generator, discriminator, optimizer_ft_G, optimizer_ft_D,
+          loss_function_G_, loss_function_G, loss_function_D, exp_lr_scheduler_G, exp_lr_scheduler_D,
+          eval_function_G, eval_function_D, train_loader, val_loader, Epochs, device, threshold,
+          output_dir, train_writer, val_writer, experiment, train_comet)

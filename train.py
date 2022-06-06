@@ -10,6 +10,7 @@ import torch
 import shutil
 import datetime
 import data_loader
+from data_loader import ItemPool
 from torch.utils.data import DataLoader
 from utils.visualize import visualize_save_pair
 
@@ -188,10 +189,10 @@ def train_epoch(train_model, train_load, Device, loss_fn, eval_fn, optimizer, sc
     for batch in train_load:
         it = it + 1
 
-        inputs, target, mask = batch
+        inputs, target, _ = batch
         inputs = inputs.to(Device)
         target = target.to(Device)
-        mask   = mask.to(Device)
+        # mask   = mask.to(Device)
         optimizer.zero_grad()
 
         output = train_model(inputs)
@@ -231,9 +232,10 @@ def train_generator_epoch(train_model_G, train_model_D,
                           optimizer_G, optimizer_D,
                           scheduler_G, scheduler_D, epoch, Epochs):
     it = 0
-    label_size = 1
+    fake_pool = ItemPool()
     training_loss_D = {}
-    training_evaluation_D = {}
+    training_evaluation_D_Real = {}
+    training_evaluation_D_Fake = {}
 
     training_loss_sum_D = {}
     training_eval_sum_D = {}
@@ -252,40 +254,60 @@ def train_generator_epoch(train_model_G, train_model_D,
 
     for batch in train_load:
         it = it + 1
+        train_model_D.train(True)
+        train_model_G.train(False)
         optimizer_D.zero_grad()
         real_input, real_output, real_mask = batch
         real_input, real_output, real_mask = real_input.to(Device), real_output.to(Device), real_mask.to(Device)
-        b_size = real_output.size(0)
 
         # Real Training
         real_predict = train_model_D(real_output)
         real_label = torch.ones_like(real_predict, dtype=torch.float, device=Device)
 
         loss_D_O, training_loss_sum_D, training_loss_D = \
-            calculate_loss(loss_fn_D, it, training_loss_sum_D, training_loss_D, real_predict, real_label)
+            calculate_loss(loss_fn_D, it, training_loss_sum_D, training_loss_D, real_predict, 1)
+
+        real_predict = torch.sigmoid(real_predict.data)
+        real_predict = torch.round(real_predict)
+        real_predict, real_label = real_predict.int(), real_label.int()
+
+        _, training_eval_sum_D, training_evaluation_D_Real = \
+            calculate_eval(eval_fn_D, it, training_eval_sum_D, training_evaluation_D_Real, real_predict, real_label)
 
         # Fake Training
         fake_label = torch.zeros_like(real_predict, dtype=torch.float, device=Device)
+
         fake_predict = train_model_D(train_model_G(real_input))
+        # After Fake Pool
+        fake_predict = fake_pool(fake_predict.data)
         loss_D_T, training_loss_sum_D, training_loss_D = \
-            calculate_loss(loss_fn_D, it, training_loss_sum_D, training_loss_D, fake_predict, fake_label)
-        evaluation_D, training_eval_sum_D, training_evaluation_D = \
-            calculate_eval(eval_fn_D, it, training_eval_sum_D, training_evaluation_D, fake_predict, fake_label)
+            calculate_loss(loss_fn_D, it, training_loss_sum_D, training_loss_D, fake_predict, 0)
+
+        fake_predict = torch.sigmoid(fake_predict.data)
+        fake_predict = torch.round(fake_predict)
+        fake_predict, fake_label = fake_predict.int(), fake_label.int()
+        _, training_eval_sum_D, training_evaluation_D_Fake = \
+            calculate_eval(eval_fn_D, it, training_eval_sum_D, training_evaluation_D_Fake, fake_predict, fake_label)
 
         loss_D = loss_D_O + loss_D_T
         loss_D.backward()
         optimizer_D.step()
 
+        del real_predict
+        del fake_predict
+
         # Generator Training
+        train_model_D.train(False)
+        train_model_G.train(True)
         optimizer_G.zero_grad()
         gen_predict = train_model_G(real_input)
         loss_G_, training_loss_sum_G, training_loss_G = \
-            calculate_loss(loss_function_G_, it, training_loss_sum_G, training_loss_G, gen_predict, 1)
+            calculate_loss(loss_function_G_, it, training_loss_sum_G, training_loss_G, train_model_D(gen_predict), 1)
 
         loss_G, training_loss_sum_G, training_loss_G = \
             calculate_loss(loss_fn_G, it, training_loss_sum_G, training_loss_G, gen_predict, real_output)
 
-        evaluation_G, training_eval_sum_G, training_evaluation_G = \
+        _, training_eval_sum_G, training_evaluation_G = \
             calculate_eval(eval_fn_G, it, training_eval_sum_G, training_evaluation_G, gen_predict, real_output)
 
         loss_G = loss_G_ + loss_G
@@ -301,7 +323,8 @@ def train_generator_epoch(train_model_G, train_model_D,
 
         print("Epoch:{}/{}, Iter:{}/{},".format(epoch, Epochs, it, len(train_load)))
         print(training_loss_D)
-        print(training_evaluation_D)
+        print('Real', training_evaluation_D_Real)
+        print('Fake', training_evaluation_D_Fake)
         print(training_loss_G)
         print(training_evaluation_G)
         print("Epoch:{}/{}, Iter:{}/{}_Mean,".format(epoch, Epochs, it, len(train_load)))
@@ -337,12 +360,12 @@ def val_epoch(valid_model, val_load, Device, loss_fn, eval_fn, epoch, Epochs):
 
     for batch in val_load:
         it = it + 1
-        inputs, target, mask = batch
+        inputs, target, _ = batch
 
         inputs = inputs.to(Device)
         output = valid_model(inputs)
         target = target.to(Device)
-        mask   = mask.to(Device)
+        # mask   = mask.to(Device)
 
         loss, valid_loss_sum, valid_loss = \
             calculate_loss(loss_fn, it, valid_loss_sum, valid_loss, output, target)
@@ -375,7 +398,6 @@ def val_generator_epoch(train_model_G, train_model_D,
                         eval_fn_G, eval_fn_D,
                         epoch, Epochs):
     it = 0
-    label_size = 1
     training_loss_D = {}
     training_evaluation_D = {}
 
@@ -399,27 +421,39 @@ def val_generator_epoch(train_model_G, train_model_D,
 
         real_input, real_output, real_mask = batch
         real_input, real_output, real_mask = real_input.to(Device), real_output.to(Device), real_mask.to(Device)
-        b_size = real_output.size(0)
 
         # Real
         real_predict = train_model_D(real_output)
         real_label = torch.ones_like(real_predict, dtype=torch.float, device=Device)
 
         loss_D_O, training_loss_sum_D, training_loss_D = \
-            calculate_loss(loss_fn_D, it, training_loss_sum_D, training_loss_D, real_predict, real_label)
+            calculate_loss(loss_fn_D, it, training_loss_sum_D, training_loss_D, real_predict, 1)
+
+        real_predict = torch.sigmoid(real_predict.data)
+        real_predict = torch.round(real_predict)
+        real_predict, real_label = real_predict.int(), real_label.int()
+        _, training_eval_sum_D, training_evaluation_D_Real = \
+            calculate_eval(eval_fn_D, it, training_eval_sum_D, training_evaluation_D, real_predict, real_label)
 
         # Fake
         fake_label = torch.zeros_like(real_predict, dtype=torch.float, device=Device)
         fake_predict = train_model_D(train_model_G(real_input))
         loss_D_T, training_loss_sum_D, training_loss_D = \
-            calculate_loss(loss_fn_D, it, training_loss_sum_D, training_loss_D, fake_predict, fake_label)
-        evaluation_D, training_eval_sum_D, training_evaluation_D = \
+            calculate_loss(loss_fn_D, it, training_loss_sum_D, training_loss_D, fake_predict, 0)
+
+        fake_predict = torch.sigmoid(fake_predict.data)
+        fake_predict = torch.round(fake_predict)
+        fake_predict, fake_label = fake_predict.int(), fake_label.int()
+        evaluation_D, training_eval_sum_D, training_evaluation_D_Fake = \
             calculate_eval(eval_fn_D, it, training_eval_sum_D, training_evaluation_D, fake_predict, fake_label)
+
+        del real_predict
+        del fake_predict
 
         # Generator
         gen_predict = train_model_G(real_input)
         loss_G_, training_loss_sum_G, training_loss_G = \
-            calculate_loss(loss_function_G_, it, training_loss_sum_G, training_loss_G, gen_predict, 1)
+            calculate_loss(loss_function_G_, it, training_loss_sum_G, training_loss_G, train_model_D(gen_predict), 1)
 
         loss_G, training_loss_sum_G, training_loss_G = \
             calculate_loss(loss_fn_G, it, training_loss_sum_G, training_loss_G, gen_predict, real_output)
@@ -435,7 +469,8 @@ def val_generator_epoch(train_model_G, train_model_D,
 
         print("Epoch:{}/{}, Iter:{}/{},".format(epoch, Epochs, it, len(val_load)))
         print(training_loss_D)
-        print(training_evaluation_D)
+        print('Real', training_evaluation_D_Real)
+        print('Fake', training_evaluation_D_Fake)
         print(training_loss_G)
         print(training_evaluation_G)
         print("Epoch:{}/{}, Iter:{}/{}_Mean,".format(epoch, Epochs, it, len(val_load)))
@@ -493,8 +528,11 @@ def train(training_model, optimizer, loss_fn, eval_fn,
                 for k, v in valid_dict.items():
                     experiment_comet.log_metrics(v, step=epoch)
 
-            print('Epoch: {}, \n Mean Training Loss:{}, \n Mean Validation Loss: {}, \n'
-                  'Mean Training evaluation:{}, \nMean Validation evaluation:{} '
+            print('Epoch: {}, \n'
+                  'Mean Training Loss:{}, \n '
+                  'Mean Validation Loss: {}, \n'
+                  'Mean Training evaluation:{}, \n'
+                  'Mean Validation evaluation:{} '
                   .format(epoch, train_loss, val_loss, train_evaluation, val_evaluation))
 
             # 这一部分可以根据任务进行调整
@@ -565,15 +603,15 @@ def train_GAN(training_model_G, training_model_D,
                 for k, v in valid_dict.items():
                     experiment_comet.log_metrics(v, step=epoch)
 
-            print('Epoch: {}, \n '
-                  'Mean Training Loss D:{}, \n '
-                  'Mean Training Loss G:{}, \n '
+            print('Epoch: {}, \n'
+                  'Mean Training Loss D:{}, \n'
+                  'Mean Training Loss G:{}, \n'
                   'Mean Validation Loss D: {}, \n'
-                  'Mean Validation Loss G:{}, \n '
+                  'Mean Validation Loss G:{}, \n'
                   'Mean Training evaluation D:{}, \n'
                   'Mean Training evaluation G:{}, \n'
                   'Mean Validation evaluation D:{}, \n'
-                  'Mean Validation evaluation G:{} '
+                  'Mean Validation evaluation G:{}'
                   .format(epoch, train_loss_D, train_loss_G, val_loss_D, val_loss_G,
                           train_eval_D, train_eval_G, val_eval_D, val_eval_G))
 

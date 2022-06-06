@@ -68,3 +68,28 @@ class Motion_Blur_Dataset(Dataset):
                 transforms.ToTensor()(self.blur_image), transforms.ToTensor()(self.raw_image)
 
         return self.blur_image, self.raw_image, self.raw_mask
+
+
+class ItemPool:
+
+    def __init__(self, pool_size=50):
+        self.items = []
+        self.pool_size = pool_size
+
+    def __call__(self, in_items):
+        out_items = []
+        for item in in_items:
+            item = torch.unsqueeze(item, dim=0)
+            if len(self.items) < self.pool_size:
+                self.items.append(item)
+                out_items.append(item)
+            else:
+                if torch.rand(1) > 0.5:
+                    idx = torch.randint(self.pool_size, [1])
+                    out_item, self.items[idx] = self.items[idx], item
+                    out_items.append(out_item)
+                else:
+                    out_items.append(item)
+
+        return torch.cat(out_items, dim=0)
+
