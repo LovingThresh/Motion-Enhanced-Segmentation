@@ -8,11 +8,13 @@
 import os
 
 import cv2
+
 import torch
+import random
 import albumentations as A
 from torchvision import transforms
 from torch.utils.data import Dataset
-
+from torch.autograd import Variable
 from utils.motion_process import *
 
 
@@ -20,7 +22,7 @@ transform = A.Compose([
     A.HorizontalFlip(p=0.5),
     A.VerticalFlip(p=0.5),
     A.RandomRotate90(p=0.5),
-    A.RandomCrop(224, 224)
+    A.RandomCrop(256, 256)
 ])
 
 
@@ -66,30 +68,64 @@ class Motion_Blur_Dataset(Dataset):
             self.blur_image, self.raw_image = self.transformed['image'], self.transformed['mask']
             self.blur_image, self.raw_image = \
                 transforms.ToTensor()(self.blur_image), transforms.ToTensor()(self.raw_image)
+            self.blur_image, self.raw_image = \
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(self.blur_image), \
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(self.raw_image)
 
         return self.blur_image, self.raw_image, self.raw_mask
 
 
 class ItemPool:
-
     def __init__(self, pool_size=50):
-        self.items = []
         self.pool_size = pool_size
+        if self.pool_size > 0:
+            self.num_imgs = 0
+            self.images = []
 
-    def __call__(self, in_items):
-        out_items = []
-        for item in in_items:
-            item = torch.unsqueeze(item, dim=0)
-            if len(self.items) < self.pool_size:
-                self.items.append(item)
-                out_items.append(item)
+    def __call__(self, images):
+        if self.pool_size == 0:
+            return images
+        return_images = []
+        for image in images.data:
+            image = torch.unsqueeze(image, 0)
+            if self.num_imgs < self.pool_size:
+                self.num_imgs = self.num_imgs + 1
+                self.images.append(image)
+                return_images.append(image)
             else:
-                if torch.rand(1) > 0.5:
-                    idx = torch.randint(self.pool_size, [1])
-                    out_item, self.items[idx] = self.items[idx], item
-                    out_items.append(out_item)
+                p = random.uniform(0, 1)
+                if p > 0.5:
+                    random_id = random.randint(0, self.pool_size-1)
+                    tmp = self.images[random_id].clone()
+                    self.images[random_id] = image
+                    return_images.append(tmp)
                 else:
-                    out_items.append(item)
+                    return_images.append(image)
+        return_images = Variable(torch.cat(return_images, 0))
+        return return_images
 
-        return torch.cat(out_items, dim=0)
 
+# class ItemPool:
+#
+#     def __init__(self, pool_size=50):
+#         self.items = []
+#         self.pool_size = pool_size
+#
+#     def __call__(self, in_items):
+#         out_items = []
+#         for item in in_items:
+#             item = torch.unsqueeze(item, dim=0)
+#             if len(self.items) < self.pool_size:
+#                 self.items.append(item)
+#                 out_items.append(item)
+#             else:
+#                 if torch.rand(1) > 0.5:
+#                     idx = torch.randint(self.pool_size, [1])
+#                     out_item, self.items[idx] = self.items[idx], item
+#                     out_items.append(out_item)
+#                 else:
+#                     out_items.append(item)
+#
+#         return torch.cat(out_items, dim=0)
+
+# Test The Code

@@ -52,12 +52,14 @@ def visualize_pair(train_loader, input_size, crop_size, plot_switch=True):
     input_tensor_numpy = a[0][0:1].numpy()
     input_tensor_numpy = input_tensor_numpy.transpose(0, 2, 3, 1)
     input_tensor_numpy = input_tensor_numpy.reshape(input_size[0], input_size[1], 3)
+    input_tensor_numpy = (input_tensor_numpy + 1) / 2
     if plot_switch:
         plot(input_tensor_numpy)
 
     output_tensor_numpy = a[1][0:1].numpy()
     output_tensor_numpy = output_tensor_numpy.transpose(0, 2, 3, 1)
     output_tensor_numpy = output_tensor_numpy.reshape(crop_size[0], crop_size[1], 3)
+    output_tensor_numpy = (output_tensor_numpy + 1) / 2
     if plot_switch:
         plot(output_tensor_numpy)
 
@@ -78,12 +80,14 @@ def visualize_save_pair(val_model: torch.nn.Module, train_loader, save_path, epo
     input_tensor_numpy = input_tensor_numpy.transpose(0, 2, 3, 1)
     input_tensor_numpy = input_tensor_numpy.reshape(input_size[0], input_size[1], 3)
     input_tensor_numpy = cv2.cvtColor(input_tensor_numpy, cv2.COLOR_BGR2RGB)
+    input_tensor_numpy = (input_tensor_numpy + 1) / 2
     cv2.imwrite('{}/{}_input.jpg'.format(save_path, epoch), np.uint8(input_tensor_numpy * 255))
 
     output_tensor_numpy = output_tensor.numpy()
     output_tensor_numpy = output_tensor_numpy.transpose(0, 2, 3, 1)
     output_tensor_numpy = output_tensor_numpy.reshape(crop_size[0], crop_size[1], 3)
     output_tensor_numpy = cv2.cvtColor(output_tensor_numpy, cv2.COLOR_BGR2RGB)
+    output_tensor_numpy = (output_tensor_numpy + 1) / 2
     cv2.imwrite('{}/{}_output.jpg'.format(save_path, epoch), np.uint8(output_tensor_numpy * 255))
 
     val_model.eval()
@@ -92,5 +96,6 @@ def visualize_save_pair(val_model: torch.nn.Module, train_loader, save_path, epo
     predict_tensor_numpy = predict_tensor_numpy.transpose(0, 2, 3, 1)
     predict_tensor_numpy = predict_tensor_numpy.reshape(crop_size[0], crop_size[1], 3)
     predict_tensor_numpy = cv2.cvtColor(predict_tensor_numpy, cv2.COLOR_BGR2RGB)
+    predict_tensor_numpy = (predict_tensor_numpy + 1) / 2
     cv2.imwrite('{}/{}_predict.jpg'.format(save_path, epoch), np.uint8(predict_tensor_numpy * 255))
 

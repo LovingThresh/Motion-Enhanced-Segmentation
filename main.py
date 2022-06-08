@@ -6,7 +6,7 @@
 # @Software: PyCharm
 
 import mmcv
-
+import random
 # import torchmetrics.functional
 # from mmedit.models import MODELS
 from mmedit.models import LOSSES
@@ -22,10 +22,12 @@ from train import *
 from model import *
 from comet_ml import Experiment
 from utils.visualize import visualize_pair
+from utils.Loss import perceptual_loss
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
 
+random.seed(10)
 np.random.seed(10)
 torch.manual_seed(10)
 torch.cuda.manual_seed_all(10)
@@ -34,9 +36,9 @@ train_comet = False
 
 hyper_params = {
     "ex_number": 'EDSR_3080Ti',
-    "raw_size": (3, 448, 448),
-    "crop_size": (3, 224, 224),
-    "input_size": (3, 224, 224),
+    "raw_size": (3, 512, 512),
+    "crop_size": (3, 256, 256),
+    "input_size": (3, 256, 256),
     "batch_size": 4,
     "learning_rate": 1e-4,
     "epochs": 200,
@@ -82,8 +84,8 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size)
 # =                                     Model                                   =
 # ===============================================================================
 
-generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=True)
-discriminator = define_D(3, 64, 'basic')
+generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=True, norm='instance')
+discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
 
 
 # model = ResNet(101, double_input=Img_Recon)
@@ -101,15 +103,16 @@ def gan_loss(input, target):
     return -input.mean() if target else input.mean()
 
 
-perceptual_loss = dict(
-    type='PerceptualLoss',
-    layer_weights={'34': 1.0},
-    vgg_type='vgg19',
-    perceptual_weight=100.0,
-    style_weight=0,
-    norm_img=True,
-    criterion='mse')
-perceptual_loss = mmcv.build_from_cfg(perceptual_loss, LOSSES)
+# perceptual_loss = dict(
+#     type='PerceptualLoss',
+#     layer_weights={'34': 1.0},
+#     vgg_type='vgg19',
+#     perceptual_weight=100.0,
+#     style_weight=0,
+#     norm_img=True,
+#     criterion='mse')
+# perceptual_loss = mmcv.build_from_cfg(perceptual_loss, LOSSES)
+
 
 pixel_loss = dict(type='L1Loss', loss_weight=10, reduction='mean')
 pixel_loss = mmcv.build_from_cfg(pixel_loss, LOSSES)
