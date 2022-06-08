@@ -119,7 +119,7 @@ pixel_loss = mmcv.build_from_cfg(pixel_loss, LOSSES)
 
 loss_function_D = {'loss_function_dis': nn.MSELoss()}
 
-loss_function_G_ = {'loss_function_gen': nn.MSELoss()}
+loss_function_G_ = {'loss_function_gen': nn.BCELoss()}
 
 loss_function_G = {  # 'content_loss': pixel_loss,
     'perceptual_loss': perceptual_loss

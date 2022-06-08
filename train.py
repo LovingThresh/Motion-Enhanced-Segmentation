@@ -257,9 +257,7 @@ def train_generator_epoch(train_model_G, train_model_D,
 
     for batch in train_load:
         it = it + 1
-        D_weight = 0.2
-        train_model_D.train(True)
-        train_model_G.train(False)
+        D_weight = 0.5
         optimizer_D.zero_grad()
         real_input, real_output, real_mask = batch
         real_input, real_output, real_mask = real_input.to(Device), real_output.to(Device), real_mask.to(Device)
@@ -271,7 +269,7 @@ def train_generator_epoch(train_model_G, train_model_D,
         real_predict = train_model_D(real_output)
         real_label = torch.ones(real_predict.shape, dtype=torch.float32, device=Device) + \
                      torch.rand(real_predict.shape, dtype=torch.float32, device=Device) * \
-                     torch.tensor(0.2, dtype=torch.float32, device=Device)
+                     torch.tensor(0.1, dtype=torch.float32, device=Device)
         # calculate loss
         loss_D_Real, training_loss_sum_D, training_loss_D = \
             calculate_loss(loss_fn_D, it, training_loss_sum_D, training_loss_D, real_predict, real_label)
@@ -282,34 +280,33 @@ def train_generator_epoch(train_model_G, train_model_D,
         # print loss_D_Real without weight
         print("Epoch:{}/{}, Iter:{}/{},".format(epoch, Epochs, it, len(train_load)))
         print('Real', training_loss_D)
-        loss_D_Real.backward()
+        loss_D_Real.backward(retain_graph=True)
 
         # --------------------------------------------------------------------------------------------------------------
         # Fake Training
         fake_output = train_model_G(real_input)
-        fake_output_pool = fake_pool(fake_output.data)
+        fake_output_pool = fake_pool(fake_output.detach().data)
         fake_predict = train_model_D(fake_output_pool)
         fake_label = torch.zeros(fake_predict.shape, dtype=torch.float32, device=Device) + \
                      torch.rand(real_predict.shape, dtype=torch.float32, device=Device) * \
-                     torch.tensor(0.2, dtype=torch.float32, device=Device)
+                     torch.tensor(0.1, dtype=torch.float32, device=Device)
 
         # Fake Pool + calculate loss
         loss_D_Fake, training_loss_sum_D, training_loss_D = \
             calculate_loss(loss_fn_D, it + 1, training_loss_sum_D, training_loss_D, fake_predict, fake_label)
         loss_D_Fake = loss_D_Fake * torch.tensor(D_weight, dtype=torch.float32, device=Device)
-
-        # print loss_D_Fake without weight
         print('Fake', training_loss_D)
-        loss_D_Fake.backward()
+
+        loss_D_Fake.backward(retain_graph=True)
         optimizer_D.step()
 
         # --------------------------------------------------------------------------------------------------------------
         # Generator Training
-        train_model_D.train(False)
-        train_model_G.train(True)
         optimizer_G.zero_grad()
-        gen_output = train_model_G(real_input)
-        gen_predict = train_model_D(gen_output)
+        fake_output_pool = fake_pool(fake_output.data)
+        gen_output = fake_output_pool
+        fake_predict = train_model_D(fake_output_pool)
+        gen_predict = fake_predict
 
         # calculate generator_VS_discriminator loss
         loss_G_, training_loss_sum_G, training_loss_G = \
@@ -338,12 +335,13 @@ def train_generator_epoch(train_model_G, train_model_D,
         # print('Real', training_evaluation_D_Real)
         # print('Fake', training_evaluation_D_Fake)
         # print Mean loss_and_evaluation
-        print("\nEpoch:{}/{}, Iter:{}/{}_Mean,".format(epoch, Epochs, it, len(train_load)))
+        print("-" * 80)
+        print("Epoch:{}/{}, Iter:{}/{}_Mean,".format(epoch, Epochs, it, len(train_load)))
         print(training_loss_mean_D)
         print(training_eval_mean_D)
         print(training_loss_mean_G)
         print(training_eval_mean_G)
-        print("-" * 80)
+        print("=" * 80)
 
     scheduler_D.step()
     scheduler_G.step()
