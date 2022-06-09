@@ -27,11 +27,6 @@ from utils.Loss import perceptual_loss
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
 
-random.seed(10)
-np.random.seed(10)
-torch.manual_seed(10)
-torch.cuda.manual_seed_all(10)
-
 train_comet = False
 
 hyper_params = {
@@ -117,7 +112,7 @@ def gan_loss(input, target):
 pixel_loss = dict(type='L1Loss', loss_weight=10, reduction='mean')
 pixel_loss = mmcv.build_from_cfg(pixel_loss, LOSSES)
 
-loss_function_D = {'loss_function_dis': nn.MSELoss()}
+loss_function_D = {'loss_function_dis': nn.BCELoss()}
 
 loss_function_G_ = {'loss_function_gen': nn.BCELoss()}
 
