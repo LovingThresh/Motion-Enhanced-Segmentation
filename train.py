@@ -10,7 +10,7 @@ import torch
 import shutil
 import datetime
 import data_loader
-from data_loader import ItemPool
+# from data_loader import ItemPool
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from utils.visualize import visualize_save_pair
@@ -164,6 +164,8 @@ def calculate_eval(eval_fn, it, training_eval_sum, training_evaluation, output, 
             for k, _ in eval_fn.items():
                 training_eval_sum[k] = 0
         for k, v in eval_fn.items():
+            output, target = (output + 1) / 2, (target + 1) / 2
+            output, target = output * 255, target * 255
             evaluation = v(output, target)
             training_evaluation[k] = evaluation.item()
             training_eval_sum[k] += evaluation.item()
@@ -271,7 +273,9 @@ def train_generator_epoch(train_model_G, train_model_D,
         # calculate loss
         loss_D_Real, training_loss_sum_D, training_loss_D = \
             calculate_loss(loss_fn_D, it, training_loss_sum_D, training_loss_D, real_predict, real_label)
-
+        eval_D_Real, training_eval_sum_D, training_evaluation_D_Real = \
+            calculate_eval(eval_fn_D, it, training_eval_sum_D, training_evaluation_D_Real,
+                           real_output, real_label)
         # discriminator weight
         loss_D_Real = loss_D_Real * torch.tensor(D_weight, dtype=torch.float32, device=Device)
 
@@ -289,6 +293,9 @@ def train_generator_epoch(train_model_G, train_model_D,
         # Fake Pool + calculate loss
         loss_D_Fake, training_loss_sum_D, training_loss_D = \
             calculate_loss(loss_fn_D, it + 1, training_loss_sum_D, training_loss_D, fake_predict, fake_label)
+        eval_D_Fake, training_eval_sum_D, training_evaluation_D_Fake = \
+            calculate_eval(eval_fn_D, it + 1, training_eval_sum_D, training_evaluation_D_Fake,
+                           fake_output, fake_label)
         loss_D_Fake = loss_D_Fake * torch.tensor(D_weight, dtype=torch.float32, device=Device)
         print('Fake', training_loss_D)
 
@@ -400,7 +407,8 @@ def val_generator_epoch(train_model_G, train_model_D,
                         epoch, Epochs):
     it = 0
     training_loss_D = {}
-    training_evaluation_D = {}
+    training_evaluation_D_Real = {}
+    training_evaluation_D_Fake = {}
 
     training_loss_sum_D = {}
     training_eval_sum_D = {}
@@ -425,20 +433,27 @@ def val_generator_epoch(train_model_G, train_model_D,
 
         # Real
         real_predict = train_model_D(real_output)
-
+        real_label = torch.ones(real_predict.shape, dtype=torch.float32, device=Device)
         _, training_loss_sum_D, training_loss_D = \
             calculate_loss(loss_fn_D, it, training_loss_sum_D, training_loss_D, real_predict,
                            torch.ones(real_predict.shape, dtype=torch.float32, device=Device))
+        _, training_eval_sum_D, training_evaluation_D = \
+            calculate_eval(eval_fn_D, it, training_eval_sum_D, training_evaluation_D_Real,
+                           real_output, real_label)
         print("Epoch:{}/{}, Iter:{}/{},".format(epoch, Epochs, it, len(val_load)))
         print(training_loss_D)
 
         # Fake
         fake_output = train_model_G(real_input)
         fake_predict = train_model_D(fake_output)
+        fake_label = torch.zeros(fake_predict.shape, dtype=torch.float32, device=Device)
 
         _, training_loss_sum_D, training_loss_D = \
             calculate_loss(loss_fn_D, it, training_loss_sum_D, training_loss_D, fake_predict,
                            torch.zeros(fake_predict.shape, dtype=torch.float32, device=Device))
+        _, training_eval_sum_D, training_evaluation_D = \
+            calculate_eval(eval_fn_D, it, training_eval_sum_D, training_evaluation_D_Fake,
+                           fake_output, fake_label)
         print(training_loss_D)
 
         # Generator
@@ -626,3 +641,35 @@ def train_GAN(training_model_G, training_model_D,
     else:
         with experiment.train():
             train_process(comet, experiment)
+
+
+def GAN_test(test_model_G: torch.nn.Module, test_model_D: torch.nn.Module,
+             model_G_path: str, model_D_path: str, output_dir: str,
+             loss_function_G_: dict, loss_fn_G: dict, loss_fn_D: dict,
+             eval_fn_G: dict, eval_fn_D: dict,
+             test_load: torch.utils.data.DataLoader, Device: str):
+    epoch = 1
+    model_G_state = torch.load(model_G_path)
+    model_D_state = torch.load(model_D_path)
+    test_model_G = test_model_G.load_state_dict(model_G_state)
+    test_model_D = test_model_D.load_state_dict(model_D_state)
+    test_model_G = test_model_G.to(Device)
+    test_model_D = test_model_D.to(Device)
+    test_model_G.train(False)
+    test_model_D.train(False)
+    test_loss_D, test_eval_D, test_loss_G, test_eval_G, test_dict = \
+        val_generator_epoch(test_model_G, test_model_D, test_load, Device, loss_function_G_,
+                            loss_fn_G, loss_fn_D, eval_fn_G, eval_fn_D, epoch=epoch, Epochs=1)
+    print("-----------------------------------测试开启-----------------------------------")
+    print('Epoch: {}, \n'
+          'Mean Test Loss D:{}, \n'
+          'Mean Test Loss G:{}, \n'
+          'Mean Validation Loss D: {}, \n'
+          'Mean Validation Loss G:{}, \n'
+          .format(epoch, test_loss_D, test_loss_G, test_eval_D, test_eval_G))
+
+    # 验证阶段的结果可视化
+    save_path = os.path.join(output_dir, 'save_fig')
+    visualize_save_pair(test_model_G, test_load, save_path, epoch)
+
+    print("-----------------------------------测试完成-----------------------------------")

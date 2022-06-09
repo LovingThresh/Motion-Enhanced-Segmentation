@@ -6,7 +6,6 @@
 # @Software: PyCharm
 
 import mmcv
-import random
 # import torchmetrics.functional
 # from mmedit.models import MODELS
 from mmedit.models import LOSSES
