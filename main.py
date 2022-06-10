@@ -34,13 +34,13 @@ hyper_params = {
     "crop_size": (3, 256, 256),
     "input_size": (3, 256, 256),
     "batch_size": 4,
-    "learning_rate": 1e-4,
-    "epochs": 200,
-    "threshold": 28,
-    "checkpoint": False,
+    "learning_rate": 2e-6,
+    "epochs": 1,
+    "threshold": 22,
+    "checkpoint": True,
     "Img_Recon": True,
     "src_path": 'E:/BJM/Motion_Image',
-    "check_path": 'E:/bjm/Super_Resolution/2022-05-16-09-44-25.670141/checkpoint/400.tar'
+    "check_path": 'E:/BJM/Motion_Image/2022-06-09-14-08-01.137958/checkpoint/200.pth'
 }
 
 experiment = object
@@ -133,8 +133,8 @@ optimizer_ft_G = optim.Adam(generator.parameters(), lr=lr, betas=(0.5, 0.999))
 # exp_lr_scheduler_D = lr_scheduler.CosineAnnealingLR(optimizer_ft_D, int(Epochs / 10))
 # exp_lr_scheduler_G = lr_scheduler.CosineAnnealingLR(optimizer_ft_G, int(Epochs / 10))
 
-exp_lr_scheduler_D = lr_scheduler.StepLR(optimizer_ft_D, step_size=10, gamma=0.8)
-exp_lr_scheduler_G = lr_scheduler.StepLR(optimizer_ft_G, step_size=10, gamma=0.8)
+exp_lr_scheduler_D = lr_scheduler.StepLR(optimizer_ft_D, step_size=5, gamma=0.5)
+exp_lr_scheduler_G = lr_scheduler.StepLR(optimizer_ft_G, step_size=5, gamma=0.5)
 
 # ===============================================================================
 # =                                  Copy & Upload                              =
@@ -149,15 +149,16 @@ val_writer = SummaryWriter('{}/valer_{}'.format(os.path.join(output_dir, 'summar
 # =                                Checkpoint                                   =
 # ===============================================================================
 
-# if Checkpoint:
-#     checkpoint = torch.load(check_path)
-#     model.load_state_dict(checkpoint['model_state_dict'])
-#     optimizer_ft.load_state_dict(checkpoint['optimizer_state_dict'])
-#     for state in optimizer_ft.state.values():
-#         for k, v in state.items():
-#             if isinstance(v, torch.Tensor):
-#                 state[k] = v.cuda()
-#     exp_lr_scheduler.load_state_dict(checkpoint['lr_schedule_state_dict'])
+if Checkpoint:
+    checkpoint = torch.load(check_path)
+    generator.load_state_dict(checkpoint['model_state_dict'][0])
+    discriminator.load_state_dict(checkpoint['model_state_dict'][1])
+    # optimizer_ft.load_state_dict(checkpoint['optimizer_state_dict'])
+    # for state in optimizer_ft.state.values():
+    #     for k, v in state.items():
+    #         if isinstance(v, torch.Tensor):
+    #             state[k] = v.cuda()
+    # exp_lr_scheduler.load_state_dict(checkpoint['lr_schedule_state_dict'])
 
 # ===============================================================================
 # =                                    Training                                 =
@@ -171,3 +172,10 @@ train_GAN(generator, discriminator, optimizer_ft_G, optimizer_ft_D,
           loss_function_G_, loss_function_G, loss_function_D, exp_lr_scheduler_G, exp_lr_scheduler_D,
           eval_function_G, eval_function_D, train_loader, val_loader, Epochs, device, threshold,
           output_dir, train_writer, val_writer, experiment, train_comet)
+
+
+# G_path = 'E:/BJM/Motion_Image/2022-06-10-14-12-27.500277/save_model/Epoch_8_eval_22.14645609362372.pt'
+# save_path = 'E:/BJM/Motion_Image/2022-06-10-14-12-27.500277'
+# GAN_test(generator, discriminator, model_G_path=G_path, output_dir=save_path, loss_function_G_=loss_function_G_,
+#          loss_fn_G=loss_function_G, loss_fn_D=loss_function_D, eval_fn_G=eval_function_G, eval_fn_D=eval_function_D,
+#          test_load=val_loader, Device=device)
