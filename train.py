@@ -672,9 +672,11 @@ def GAN_test(test_model_G: torch.nn.Module, test_model_D: torch.nn.Module,
           .format(epoch, test_loss_D, test_loss_G, test_eval_D, test_eval_G))
 
     # 验证阶段的结果可视化
+
     save_path = os.path.join(output_dir, 'test_fig')
-    os.mkdir(save_path)
-    for i in range(20):
+    if not os.path.exists(save_path):
+        os.mkdir(save_path)
+    for i in range(len(test_load)):
         visualize_save_pair(test_model_G, test_load, save_path, epoch, num=i)
 
     print("-----------------------------------测试完成-----------------------------------")

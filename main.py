@@ -97,6 +97,10 @@ def gan_loss(input, target):
     return -input.mean() if target else input.mean()
 
 
+def correlation(input, target):
+    input_vector =  input.reshape((1, -1))
+    target_vector = target.reshape((1, -1))
+    return torch.corrcoef(torch.cat([input_vector, target_vector], dim=0))[0, 1]
 # perceptual_loss = dict(
 #     type='PerceptualLoss',
 #     layer_weights={'34': 1.0},
@@ -125,7 +129,8 @@ eval_function_acc = torchmetrics.functional.accuracy
 
 eval_function_D = {'eval_function_acc': eval_function_acc}
 eval_function_G = {'eval_function_psnr': eval_function_psnr,
-                   'eval_function_ssim': eval_function_ssim}
+                   'eval_function_ssim': eval_function_ssim,
+                   'eval_function_coef': correlation}
 
 optimizer_ft_D = optim.Adam(discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
 optimizer_ft_G = optim.Adam(generator.parameters(), lr=lr, betas=(0.5, 0.999))
@@ -174,8 +179,8 @@ train_GAN(generator, discriminator, optimizer_ft_G, optimizer_ft_D,
           output_dir, train_writer, val_writer, experiment, train_comet)
 
 
-# G_path = 'E:/BJM/Motion_Image/2022-06-10-14-12-27.500277/save_model/Epoch_8_eval_22.14645609362372.pt'
-# save_path = 'E:/BJM/Motion_Image/2022-06-10-14-12-27.500277'
-# GAN_test(generator, discriminator, model_G_path=G_path, output_dir=save_path, loss_function_G_=loss_function_G_,
-#          loss_fn_G=loss_function_G, loss_fn_D=loss_function_D, eval_fn_G=eval_function_G, eval_fn_D=eval_function_D,
-#          test_load=val_loader, Device=device)
+G_path = 'E:/BJM/Motion_Image/2022-06-10-14-12-27.500277/save_model/Epoch_8_eval_22.14645609362372.pt'
+save_path = 'E:/BJM/Motion_Image/2022-06-10-14-12-27.500277'
+GAN_test(generator, discriminator, model_G_path=G_path, output_dir=save_path, loss_function_G_=loss_function_G_,
+         loss_fn_G=loss_function_G, loss_fn_D=loss_function_D, eval_fn_G=eval_function_G, eval_fn_D=eval_function_D,
+         test_load=test_loader, Device=device)
