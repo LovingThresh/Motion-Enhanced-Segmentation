@@ -5,7 +5,9 @@
 # @File    : main.py
 # @Software: PyCharm
 
+from comet_ml import Experiment
 import mmcv
+import random
 # import torchmetrics.functional
 # from mmedit.models import MODELS
 from mmedit.models import LOSSES
@@ -19,7 +21,6 @@ from torch.utils.tensorboard import SummaryWriter
 
 from train import *
 from model import *
-from comet_ml import Experiment
 from utils.visualize import visualize_pair
 from utils.Loss import perceptual_loss
 
@@ -28,16 +29,21 @@ print(f"Using {device} device")
 
 train_comet = False
 
+random.seed(24)
+np.random.seed(24)
+torch.manual_seed(24)
+torch.cuda.manual_seed_all(24)
+
 hyper_params = {
     "ex_number": 'EDSR_3080Ti',
     "raw_size": (3, 512, 512),
     "crop_size": (3, 256, 256),
     "input_size": (3, 256, 256),
     "batch_size": 4,
-    "learning_rate": 2e-6,
-    "epochs": 1,
-    "threshold": 22,
-    "checkpoint": True,
+    "learning_rate": 1e-4,
+    "epochs": 100,
+    "threshold": 0.6,
+    "checkpoint": False,
     "Img_Recon": True,
     "src_path": 'E:/BJM/Motion_Image',
     "check_path": 'E:/BJM/Motion_Image/2022-06-09-14-08-01.137958/checkpoint/200.pth'
@@ -71,7 +77,7 @@ if train_comet:
 # ===============================================================================
 
 train_loader, val_loader, test_loader = get_Motion_Image_Dataset(re_size=raw_size, batch_size=batch_size)
-
+a = next(iter(train_loader))
 visualize_pair(train_loader, input_size=input_size, crop_size=crop_size)
 
 # ===============================================================================
@@ -79,7 +85,8 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size)
 # ===============================================================================
 
 generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=True, norm='instance')
-discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
+generator.load_state_dict(torch.load('double_head_generator.pt'))
+# discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
 
 
 # model = ResNet(101, double_input=Img_Recon)
@@ -95,6 +102,25 @@ discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
 
 def gan_loss(input, target):
     return -input.mean() if target else input.mean()
+
+
+def iou(input, target):
+
+    intersection = input * target
+    union = (input + target) - intersection
+    Iou = torch.sum(intersection) / torch.sum(union)
+    return Iou
+
+
+def Asymmetry_Binary_Loss(input, target, alpha=100):
+    # 纯净状态下alpha为1
+    # 想要损失函数更加关心裂缝的标签值1
+    y_pred, y_true = input, target
+    y_true_0, y_pred_0 = y_true[:, 0, :, :] , y_pred[:, 0, :, :]
+    # y_true_0, y_pred_0 = y_true[:, :, :, 0] * 255, y_pred[:, :, :, 0] * 255
+    y_true_1, y_pred_1 = y_true[:, 1, :, :] * alpha, y_pred[:, 1, :, :] * alpha
+    mse = torch.nn.MSELoss()
+    return mse(y_true_0, y_pred_0) + mse(y_true_1, y_pred_1)
 
 
 def correlation(input, target):
@@ -117,7 +143,7 @@ pixel_loss = mmcv.build_from_cfg(pixel_loss, LOSSES)
 
 loss_function_D = {'loss_function_dis': nn.BCELoss()}
 
-loss_function_G_ = {'loss_function_gen': nn.BCELoss()}
+loss_function_G_ = {'loss_function_gen': Asymmetry_Binary_Loss}
 
 loss_function_G = {  # 'content_loss': pixel_loss,
     'perceptual_loss': perceptual_loss
@@ -125,20 +151,27 @@ loss_function_G = {  # 'content_loss': pixel_loss,
 
 eval_function_psnr = torchmetrics.functional.image.psnr.peak_signal_noise_ratio
 eval_function_ssim = torchmetrics.functional.image.ssim.structural_similarity_index_measure
+eval_function_iou = iou
+eval_function_pr = torchmetrics.functional.precision
+eval_function_re = torchmetrics.functional.recall
 eval_function_acc = torchmetrics.functional.accuracy
 
 eval_function_D = {'eval_function_acc': eval_function_acc}
-eval_function_G = {'eval_function_psnr': eval_function_psnr,
-                   'eval_function_ssim': eval_function_ssim,
-                   'eval_function_coef': correlation}
-
-optimizer_ft_D = optim.Adam(discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
+# eval_function_G = {'eval_function_psnr': eval_function_psnr,
+#                    'eval_function_ssim': eval_function_ssim,
+#                    'eval_function_coef': correlation}
+eval_function_G = {'eval_function_iou': eval_function_iou,
+                   'eval_function_pr': eval_function_pr,
+                   'eval_function_re': eval_function_re,
+                   'eval_function_acc': eval_function_acc,
+                   }
+# optimizer_ft_D = optim.Adam(discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
 optimizer_ft_G = optim.Adam(generator.parameters(), lr=lr, betas=(0.5, 0.999))
 
 # exp_lr_scheduler_D = lr_scheduler.CosineAnnealingLR(optimizer_ft_D, int(Epochs / 10))
 # exp_lr_scheduler_G = lr_scheduler.CosineAnnealingLR(optimizer_ft_G, int(Epochs / 10))
 
-exp_lr_scheduler_D = lr_scheduler.StepLR(optimizer_ft_D, step_size=5, gamma=0.5)
+# exp_lr_scheduler_D = lr_scheduler.StepLR(optimizer_ft_D, step_size=5, gamma=0.5)
 exp_lr_scheduler_G = lr_scheduler.StepLR(optimizer_ft_G, step_size=5, gamma=0.5)
 
 # ===============================================================================
@@ -157,7 +190,7 @@ val_writer = SummaryWriter('{}/valer_{}'.format(os.path.join(output_dir, 'summar
 if Checkpoint:
     checkpoint = torch.load(check_path)
     generator.load_state_dict(checkpoint['model_state_dict'][0])
-    discriminator.load_state_dict(checkpoint['model_state_dict'][1])
+    # discriminator.load_state_dict(checkpoint['model_state_dict'][1])
     # optimizer_ft.load_state_dict(checkpoint['optimizer_state_dict'])
     # for state in optimizer_ft.state.values():
     #     for k, v in state.items():
@@ -169,18 +202,18 @@ if Checkpoint:
 # =                                    Training                                 =
 # ===============================================================================
 
-# train(generator, optimizer_ft_G, loss_function_G, eval_function_G,
-#       train_loader, val_loader, Epochs, exp_lr_scheduler_G,
-#       device, threshold, output_dir, train_writer, val_writer, experiment, train_comet)
+train(generator, optimizer_ft_G, loss_function_G_, eval_function_G,
+      train_loader, val_loader, Epochs, exp_lr_scheduler_G,
+      device, threshold, output_dir, train_writer, val_writer, experiment, train_comet)
 
-train_GAN(generator, discriminator, optimizer_ft_G, optimizer_ft_D,
-          loss_function_G_, loss_function_G, loss_function_D, exp_lr_scheduler_G, exp_lr_scheduler_D,
-          eval_function_G, eval_function_D, train_loader, val_loader, Epochs, device, threshold,
-          output_dir, train_writer, val_writer, experiment, train_comet)
+# train_GAN(generator, discriminator, optimizer_ft_G, optimizer_ft_D,
+#           loss_function_G_, loss_function_G, loss_function_D, exp_lr_scheduler_G, exp_lr_scheduler_D,
+#           eval_function_G, eval_function_D, train_loader, val_loader, Epochs, device, threshold,
+#           output_dir, train_writer, val_writer, experiment, train_comet)
 
 
-G_path = 'E:/BJM/Motion_Image/2022-06-10-14-12-27.500277/save_model/Epoch_8_eval_22.14645609362372.pt'
-save_path = 'E:/BJM/Motion_Image/2022-06-10-14-12-27.500277'
-GAN_test(generator, discriminator, model_G_path=G_path, output_dir=save_path, loss_function_G_=loss_function_G_,
-         loss_fn_G=loss_function_G, loss_fn_D=loss_function_D, eval_fn_G=eval_function_G, eval_fn_D=eval_function_D,
-         test_load=test_loader, Device=device)
+# G_path = 'E:/BJM/Motion_Image/2022-06-10-14-12-27.500277/save_model/Epoch_8_eval_22.14645609362372.pt'
+# save_path = 'E:/BJM/Motion_Image/2022-06-10-14-12-27.500277'
+# GAN_test(generator, discriminator, model_G_path=G_path, output_dir=save_path, loss_function_G_=loss_function_G_,
+#          loss_fn_G=loss_function_G, loss_fn_D=loss_function_D, eval_fn_G=eval_function_G, eval_fn_D=eval_function_D,
+#          test_load=test_loader, Device=device)

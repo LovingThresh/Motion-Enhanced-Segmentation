@@ -57,10 +57,12 @@ def visualize_pair(train_loader, input_size, crop_size, plot_switch=True):
     if plot_switch:
         plot(input_tensor_numpy)
 
-    output_tensor_numpy = a[1][0:1].numpy()
+    output_tensor_numpy = a[2][0:1].numpy()
     output_tensor_numpy = output_tensor_numpy.transpose(0, 2, 3, 1)
+    if output_tensor_numpy.shape[-1] == 2:
+        output_tensor_numpy = output_tensor_numpy[:, :, :, 1:].repeat(3, axis=-1)
     output_tensor_numpy = output_tensor_numpy.reshape(crop_size[0], crop_size[1], 3)
-    output_tensor_numpy = (output_tensor_numpy + 1) / 2
+    # output_tensor_numpy = (output_tensor_numpy + 1) / 2
     output_tensor_numpy = np.uint8(output_tensor_numpy * 255)
     if plot_switch:
         plot(output_tensor_numpy)
@@ -96,9 +98,11 @@ def visualize_save_pair(val_model: torch.nn.Module, train_loader, save_path, epo
     predict_tensor = val_model(input_tensor.cuda())
     predict_tensor_numpy = predict_tensor.detach().cpu().numpy()
     predict_tensor_numpy = predict_tensor_numpy.transpose(0, 2, 3, 1)
+    if predict_tensor_numpy.shape[-1] == 2:
+        predict_tensor_numpy = predict_tensor_numpy[:, :, :, 1].repeat(3, axis=-1)
     predict_tensor_numpy = predict_tensor_numpy.reshape(crop_size[0], crop_size[1], 3)
     predict_tensor_numpy = cv2.cvtColor(predict_tensor_numpy, cv2.COLOR_BGR2RGB)
-    predict_tensor_numpy = (predict_tensor_numpy + 1) / 2
+    # predict_tensor_numpy = (predict_tensor_numpy + 1) / 2
     cv2.imwrite('{}/{}_predict.jpg'.format(save_path, epoch + num), np.uint8(predict_tensor_numpy * 255))
 
 

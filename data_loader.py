@@ -59,19 +59,23 @@ class Motion_Blur_Dataset(Dataset):
         # utils.visualize.plot(self.raw_image)
         # utils.visualize.plot(self.blur_image)
         self.raw_mask = cv2.imread(os.path.join(self.raw_mask_path, self.file_list[item].split(',')[1]))
-        self.raw_mask = torch.tensor(self.raw_mask[:, :, 0] > 127, dtype=torch.int8)
+        self.raw_mask = (self.raw_mask[:, :, 0] > 127).astype(np.uint8)
+        self.raw_mask = np.expand_dims(self.raw_mask, axis=-1)
+        self.raw_mask = np.concatenate([np.ones_like(self.raw_mask, dtype=np.uint8) - self.raw_mask, self.raw_mask], axis=-1)
 
         if self.transform is None:
             pass
         else:
-            self.transformed = self.transform(image=self.blur_image, mask=self.raw_image)
-            self.blur_image, self.raw_image = self.transformed['image'], self.transformed['mask']
+            self.transformed = self.transform(image=self.blur_image, masks=[self.raw_image, self.raw_mask])
+            self.blur_image, [self.raw_image, self.raw_mask] = self.transformed['image'], self.transformed['masks']
             self.blur_image, self.raw_image = \
                 transforms.ToTensor()(self.blur_image), transforms.ToTensor()(self.raw_image)
             self.blur_image, self.raw_image = \
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(self.blur_image), \
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(self.raw_image)
-
+            self.raw_mask = torch.tensor(self.raw_mask, dtype=torch.float32)
+            self.raw_mask = torch.transpose(self.raw_mask, 0, 2)
+            self.raw_mask = torch.transpose(self.raw_mask, 1, 2)
         return self.blur_image, self.raw_image, self.raw_mask
 
 

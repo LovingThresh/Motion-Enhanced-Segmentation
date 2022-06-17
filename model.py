@@ -105,6 +105,7 @@ def print_network(net):
 # Code and idea originally from Justin Johnson's architecture.
 # https://github.com/jcjohnson/fast-neural-style/
 class ResnetGenerator(nn.Module):
+    # 进一步考虑
     def __init__(
             self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False,
             n_blocks=6, gpu_ids=None, use_parallel=True, learn_residual=False, padding_type='reflect'):
@@ -153,6 +154,8 @@ class ResnetGenerator(nn.Module):
             nn.ReLU(True)
         ]
 
+        self.model_node = nn.Sequential(*model)
+        model_backbone = []
         # 中间的残差网络
         # mult = 2**n_downsampling
         for i in range(n_blocks):
@@ -161,7 +164,7 @@ class ResnetGenerator(nn.Module):
             # 		ngf * mult, padding_type=padding_type, norm_layer=norm_layer,
             # 		use_dropout=use_dropout, use_bias=use_bias)
             # ]
-            model += [
+            model_backbone += [
                 ResnetBlock(256, padding_type=padding_type, norm_layer=norm_layer, use_dropout=use_dropout,
                             use_bias=use_bias)
             ]
@@ -177,7 +180,7 @@ class ResnetGenerator(nn.Module):
         # 		norm_layer(int(ngf * mult / 2)),
         # 		nn.ReLU(True)
         # 	]
-        model += [
+        model_backbone += [
             nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, output_padding=1, bias=use_bias),
             norm_layer(128),
             nn.ReLU(True),
@@ -187,22 +190,31 @@ class ResnetGenerator(nn.Module):
             nn.ReLU(True),
         ]
 
-        model += [
+        model_branch = model_backbone + [
+            nn.ReflectionPad2d(3),
+            nn.Conv2d(64, 2, kernel_size=7, padding=0),
+        ]
+
+        model_backbone += [
             nn.ReflectionPad2d(3),
             nn.Conv2d(64, output_nc, kernel_size=7, padding=0),
             nn.Tanh()
         ]
-
-        self.model = nn.Sequential(*model)
+        # 分开进行载入权重
+        self.model_backbone = nn.Sequential(*model_backbone)
+        self.model_branch = nn.Sequential(*model_branch)
+        self.model_node.train(False)
+        self.model_backbone.train(False)
 
     def forward(self, input):
-        if self.gpu_ids and isinstance(input.data, torch.cuda.FloatTensor) and self.use_parallel:
-            output = nn.parallel.data_parallel(self.model, input, self.gpu_ids)
-        else:
-            output = self.model(input)
+
+        output = self.model_node(input)
+        branch = self.model_branch(output)
+        branch = nn.Sigmoid()(branch)
+        output = branch
         if self.learn_residual:
             # output = input + output
-            output = torch.clamp(input + output, min=-1, max=1)
+            output = branch
         return output
 
 

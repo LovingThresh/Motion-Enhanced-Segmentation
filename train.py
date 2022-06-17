@@ -140,6 +140,7 @@ def calculate_loss(loss_fn, it, training_loss_sum, training_loss, output, target
             for k, _ in loss_fn.items():
                 training_loss_sum[k] = 0
         for k, v in loss_fn.items():
+
             loss = v(output, target)
             if type(loss) is tuple:
                 loss = loss[0]
@@ -164,9 +165,11 @@ def calculate_eval(eval_fn, it, training_eval_sum, training_evaluation, output, 
             for k, _ in eval_fn.items():
                 training_eval_sum[k] = 0
         for k, v in eval_fn.items():
-            output, target = (output + 1) / 2, (target + 1) / 2
-            output, target = output * 255, target * 255
-            evaluation = v(output, target)
+            # output, target = (output + 1) / 2, (target + 1) / 2
+            # output, target = output * 255, target * 255
+            output_ = (output[:, 1, :, :].reshape(-1) > 0.5).int()
+            target_ = (target[:, 1, :, :].reshape(-1) > 0.5).int()
+            evaluation = v(output_, target_)
             training_evaluation[k] = evaluation.item()
             training_eval_sum[k] += evaluation.item()
     else:
@@ -193,7 +196,7 @@ def train_epoch(train_model, train_load, Device, loss_fn, eval_fn, optimizer, sc
     for batch in train_load:
         it = it + 1
 
-        inputs, target, _ = batch
+        inputs, _, target = batch
         inputs = inputs.to(Device)
         target = target.to(Device)
         # mask   = mask.to(Device)
@@ -370,7 +373,7 @@ def val_epoch(valid_model, val_load, Device, loss_fn, eval_fn, epoch, Epochs):
 
     for batch in val_load:
         it = it + 1
-        inputs, target, _ = batch
+        inputs, _, target = batch
 
         inputs = inputs.to(Device)
         output = valid_model(inputs)
@@ -518,10 +521,10 @@ def train(training_model, optimizer, loss_fn, eval_fn,
             print(f'Epoch {epoch}/{epochs}')
             print('-' * 10)
 
-            training_model.train(True)
+            training_model.model_branch.train(True)
             train_loss, train_evaluation, train_dict = train_epoch(training_model, train_load, Device, loss_fn, eval_fn,
                                                                    optimizer, scheduler, epoch, epochs)
-            training_model.train(False)
+            training_model.model_branch.train(False)
             val_loss, val_evaluation, valid_dict = val_epoch(training_model, val_load, Device, loss_fn, eval_fn,
                                                              epoch, epochs)
             write_summary(train_writer_summary, valid_writer_summary, train_dict, valid_dict, step=epoch)
@@ -540,11 +543,11 @@ def train(training_model, optimizer, loss_fn, eval_fn,
                   .format(epoch, train_loss, val_loss, train_evaluation, val_evaluation))
 
             # 这一部分可以根据任务进行调整
-            if val_evaluation['eval_function_psnr'] > threshold_value:
+            if val_evaluation['eval_function_iou'] > threshold_value:
                 torch.save(training_model.state_dict(),
                            os.path.join(output_dir, 'save_model',
-                                        'Epoch_{}_eval_{}.pt'.format(epoch, val_evaluation['eval_function_psnr'])))
-                threshold_value = val_evaluation['eval_function_psnr']
+                                        'Epoch_{}_eval_{}.pt'.format(epoch, val_evaluation['eval_function_iou'])))
+                threshold_value = val_evaluation['eval_function_iou']
 
             # 验证阶段的结果可视化
             save_path = os.path.join(output_dir, 'save_fig')
