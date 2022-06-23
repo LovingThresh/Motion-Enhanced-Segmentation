@@ -44,10 +44,10 @@ def define_G(input_nc, output_nc, ngf, which_model_netG, norm='batch', use_dropo
 
     if which_model_netG == 'resnet_9blocks':
         netG = ResnetGenerator(input_nc, output_nc, ngf=ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9,
-                               gpu_ids=gpu_ids, use_parallel=use_parallel, learn_residual=learn_residual)
+                               gpu_ids=gpu_ids, use_parallel=use_parallel)
     elif which_model_netG == 'resnet_6blocks':
         netG = ResnetGenerator(input_nc, output_nc, ngf=ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=6,
-                               gpu_ids=gpu_ids, use_parallel=use_parallel, learn_residual=learn_residual)
+                               gpu_ids=gpu_ids, use_parallel=use_parallel)
     elif which_model_netG == 'unet_128':
         netG = UnetGenerator(input_nc, output_nc, 7, ngf=ngf, norm_layer=norm_layer, use_dropout=use_dropout,
                              gpu_ids=gpu_ids, use_parallel=use_parallel, learn_residual=learn_residual)
