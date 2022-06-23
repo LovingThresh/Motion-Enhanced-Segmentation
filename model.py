@@ -107,7 +107,7 @@ class ResnetGenerator(nn.Module):
     # 进一步考虑
     def __init__(
             self, input_nc, output_nc, norm_layer, ngf=64, use_dropout=False,
-            n_blocks=6, gpu_ids=None, use_parallel=True, learn_residual=False, padding_type='reflect'):
+            n_blocks=6, gpu_ids=None, use_parallel=True, padding_type='reflect'):
         if gpu_ids is None:
             gpu_ids = [0]
         assert (n_blocks >= 0)
@@ -117,34 +117,35 @@ class ResnetGenerator(nn.Module):
         self.ngf = ngf
         self.gpu_ids = gpu_ids
         self.use_parallel = use_parallel
-        self.learn_residual = learn_residual
 
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
             use_bias = norm_layer == nn.InstanceNorm2d
 
-        model = [
+        conv1 = [
             nn.ReflectionPad2d(3),
             nn.Conv2d(input_nc, ngf, kernel_size=7, padding=0, bias=use_bias),
             norm_layer(ngf),
             nn.ReLU(True)
         ]
 
-        model += [
+        conv2 = conv1 + [
             nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1, bias=use_bias),
             norm_layer(128),
-            nn.ReLU(True),
+            nn.ReLU(True)]
 
+        conv3 = conv2 + [
             nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1, bias=use_bias),
             norm_layer(256),
             nn.ReLU(True)
         ]
 
-        self.model_node = nn.Sequential(*model)
-        model_backbone = []
+        self.model_node = nn.Sequential(*conv3)
+
         # 中间的残差网络
         # mult = 2**n_downsampling
+        model_backbone = []
         for i in range(n_blocks):
 
             model_backbone += [
@@ -152,41 +153,49 @@ class ResnetGenerator(nn.Module):
                             use_bias=use_bias)
             ]
 
-        model_backbone += [
+        # 末端分支
+        model_backbone_1 = [
             nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, output_padding=1, bias=use_bias),
             norm_layer(128),
-            nn.ReLU(True),
+            nn.ReLU(True)]
 
+        model_backbone_2 = [
             nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1, bias=use_bias),
             norm_layer(64),
             nn.ReLU(True),
         ]
 
-        model_branch = model_backbone + [
+        model_branch_1 = [
             nn.ReflectionPad2d(3),
             nn.Conv2d(64, 2, kernel_size=7, padding=0),
         ]
 
-        model_backbone += [
+        model_branch_2 = [
             nn.ReflectionPad2d(3),
             nn.Conv2d(64, output_nc, kernel_size=7, padding=0),
             nn.Tanh()
         ]
         # 分开进行载入权重
         self.model_backbone = nn.Sequential(*model_backbone)
-        self.model_branch = nn.Sequential(*model_branch)
-        # self.model_node.requires_grad_(False)
-        # self.model_backbone.requires_grad_(False)
+
+        self.model_backbone_branch_1 = nn.Sequential(*model_backbone_1)
+        self.model_backbone_branch_2 = nn.Sequential(*model_backbone_2)
+
+        self.model_branch_1 = nn.Sequential(*model_branch_1)
+        self.model_branch_2 = nn.Sequential(*model_branch_2)
+
+        self.model_node.requires_grad_(False)
+        self.model_backbone.requires_grad_(False)
+        self.model_backbone_branch_1.requires_grad_(False)
+        self.model_backbone_branch_2.requires_grad_(False)
 
     def forward(self, input):
 
         output = self.model_node(input)
-        branch = self.model_branch(output)
-        branch = nn.Sigmoid()(branch)
+        branch_1 = self.model_branch_1(output)
+        branch_2 = self.model_branch_2(branch_1)
+        branch = nn.Sigmoid()(branch_2)
         output = branch
-        if self.learn_residual:
-            # output = input + output
-            output = branch
         return output
 
 
