@@ -164,26 +164,46 @@ class ResnetGenerator(nn.Module):
             norm_layer(64),
             nn.ReLU(True),
         ]
-
-        model_branch_1 = [
-            nn.ReflectionPad2d(3),
-            nn.Conv2d(64, 2, kernel_size=7, padding=0),
-        ]
-
-        model_branch_2 = [
+        model_backbone_3 = [
             nn.ReflectionPad2d(3),
             nn.Conv2d(64, output_nc, kernel_size=7, padding=0),
             nn.Tanh()
         ]
+
+        model_branch_1 = [
+            nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, output_padding=1, bias=use_bias),
+            norm_layer(128),
+            nn.ReLU(True)]
+
+        model_branch_2 = [
+            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1, bias=use_bias),
+            norm_layer(64),
+            nn.ReLU(True),
+        ]
+        model_branch_3 = [
+            nn.ReflectionPad2d(3),
+            nn.Conv2d(64, 2, kernel_size=7, padding=0),
+        ]
+
         # 分开进行载入权重
         self.model_backbone = nn.Sequential(*model_backbone)
 
         self.model_backbone_branch_1 = nn.Sequential(*model_backbone_1)
         self.model_backbone_branch_2 = nn.Sequential(*model_backbone_2)
+        self.model_backbone_branch_3 = nn.Sequential(*model_backbone_3)
 
         self.model_branch_1 = nn.Sequential(*model_branch_1)
         self.model_branch_2 = nn.Sequential(*model_branch_2)
+        self.model_branch_3 = nn.Sequential(*model_branch_3)
 
+        self.deblur_model = nn.Sequential()
+        self.deblur_model = self.deblur_model.append(self.model_node)
+        self.deblur_model = self.deblur_model.append(self.model_backbone)
+        self.deblur_model = self.deblur_model.append(self.model_backbone_branch_1)
+        self.deblur_model = self.deblur_model.append(self.model_backbone_branch_2)
+        self.deblur_model = self.deblur_model.append(self.model_backbone_branch_3)
+
+        self.deblur_model.requires_grad_(False)
         self.model_node.requires_grad_(False)
         self.model_backbone.requires_grad_(False)
         self.model_backbone_branch_1.requires_grad_(False)
@@ -192,6 +212,7 @@ class ResnetGenerator(nn.Module):
     def forward(self, input):
 
         output = self.model_node(input)
+        output = self.model_backbone(output)
         branch_1 = self.model_branch_1(output)
         branch_2 = self.model_branch_2(branch_1)
         branch = nn.Sigmoid()(branch_2)

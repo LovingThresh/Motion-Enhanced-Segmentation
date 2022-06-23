@@ -85,8 +85,8 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size)
 # =                                     Model                                   =
 # ===============================================================================
 
-generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=True, norm='instance')
-# generator.load_state_dict(torch.load('double_head_generator.pt'))
+generator = define_G(3, 3, 64, 'resnet_9blocks', norm='instance')
+generator.load_state_dict(torch.load('New_double_head_generator.pt'))
 # discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
 
 
