@@ -4,6 +4,10 @@
 # @Email   : csu1704liuye@163.com | sy2113205@buaa.edu.cn
 # @File    : utils.py
 # @Software: PyCharm
+import torch
+import random
+import numpy as np
+
 
 def dict_slice(adict, start, end):
     keys = adict.keys()
@@ -18,3 +22,13 @@ def dict_load(adict, cdict):
     for i, j in zip(adict, cdict):
         cdict[j] = adict[i]
     return cdict
+
+
+def seed_everything(seed):
+    torch.manual_seed(seed)       # Current CPU
+    torch.cuda.manual_seed(seed)  # Current GPU
+    np.random.seed(seed)          # Numpy module
+    random.seed(seed)             # Python random module
+    torch.backends.cudnn.benchmark = False    # Close optimization
+    torch.backends.cudnn.deterministic = True  # Close optimization
+    torch.cuda.manual_seed_all(seed)  # All GPU (Optional)

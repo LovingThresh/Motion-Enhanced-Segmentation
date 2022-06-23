@@ -203,8 +203,8 @@ class ResnetGenerator(nn.Module):
         # 分开进行载入权重
         self.model_backbone = nn.Sequential(*model_backbone)
         self.model_branch = nn.Sequential(*model_branch)
-        self.model_node.train(False)
-        self.model_backbone.train(False)
+        # self.model_node.requires_grad_(False)
+        # self.model_backbone.requires_grad_(False)
 
     def forward(self, input):
 

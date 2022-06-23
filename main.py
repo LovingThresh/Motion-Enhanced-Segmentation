@@ -7,13 +7,14 @@
 
 from comet_ml import Experiment
 import mmcv
-import random
+
 # import torchmetrics.functional
 # from mmedit.models import MODELS
 from mmedit.models import LOSSES
 
-# import torchsummary
+
 import torchmetrics
+# import torchsummary
 import torch.optim as optim
 
 from torch.optim import lr_scheduler
@@ -21,25 +22,25 @@ from torch.utils.tensorboard import SummaryWriter
 
 from train import *
 from model import *
+
+from utils.Loss import *
+from utils.utils import seed_everything
 from utils.visualize import visualize_pair
-from utils.Loss import perceptual_loss
+
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
 
 train_comet = False
-
-random.seed(24)
-np.random.seed(24)
-torch.manual_seed(24)
-torch.cuda.manual_seed_all(24)
+seed = 24
+seed_everything(24)
 
 hyper_params = {
     "ex_number": 'EDSR_3080Ti',
     "raw_size": (3, 512, 512),
     "crop_size": (3, 256, 256),
     "input_size": (3, 256, 256),
-    "batch_size": 4,
+    "batch_size": 8,
     "learning_rate": 1e-4,
     "epochs": 100,
     "threshold": 0.6,
@@ -85,7 +86,7 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size)
 # ===============================================================================
 
 generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=True, norm='instance')
-generator.load_state_dict(torch.load('double_head_generator.pt'))
+# generator.load_state_dict(torch.load('double_head_generator.pt'))
 # discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
 
 
@@ -99,34 +100,6 @@ generator.load_state_dict(torch.load('double_head_generator.pt'))
 # =                                    Setting                                  =
 # ===============================================================================
 
-
-def gan_loss(input, target):
-    return -input.mean() if target else input.mean()
-
-
-def iou(input, target):
-
-    intersection = input * target
-    union = (input + target) - intersection
-    Iou = torch.sum(intersection) / torch.sum(union)
-    return Iou
-
-
-def Asymmetry_Binary_Loss(input, target, alpha=100):
-    # 纯净状态下alpha为1
-    # 想要损失函数更加关心裂缝的标签值1
-    y_pred, y_true = input, target
-    y_true_0, y_pred_0 = y_true[:, 0, :, :] , y_pred[:, 0, :, :]
-    # y_true_0, y_pred_0 = y_true[:, :, :, 0] * 255, y_pred[:, :, :, 0] * 255
-    y_true_1, y_pred_1 = y_true[:, 1, :, :] * alpha, y_pred[:, 1, :, :] * alpha
-    mse = torch.nn.MSELoss()
-    return mse(y_true_0, y_pred_0) + mse(y_true_1, y_pred_1)
-
-
-def correlation(input, target):
-    input_vector =  input.reshape((1, -1))
-    target_vector = target.reshape((1, -1))
-    return torch.corrcoef(torch.cat([input_vector, target_vector], dim=0))[0, 1]
 # perceptual_loss = dict(
 #     type='PerceptualLoss',
 #     layer_weights={'34': 1.0},

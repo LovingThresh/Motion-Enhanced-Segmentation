@@ -410,7 +410,6 @@ def val_generator_epoch(train_model_G, train_model_D,
                         loss_function_G_, loss_fn_G, loss_fn_D,
                         eval_fn_G, eval_fn_D,
                         epoch, Epochs):
-
     it = 0
     training_loss_D = {}
     training_evaluation_D_Real = {}
@@ -521,12 +520,12 @@ def train(training_model, optimizer, loss_fn, eval_fn,
             print(f'Epoch {epoch}/{epochs}')
             print('-' * 10)
 
-            training_model.model_branch.train(True)
+            training_model.train(True)
             train_loss, train_evaluation, train_dict = train_epoch(training_model, train_load, Device, loss_fn, eval_fn,
                                                                    optimizer, scheduler, epoch, epochs)
-            training_model.model_branch.train(False)
-            val_loss, val_evaluation, valid_dict = val_epoch(training_model, val_load, Device, loss_fn, eval_fn,
-                                                             epoch, epochs)
+            with torch.no_grad():
+                val_loss, val_evaluation, valid_dict = val_epoch(training_model, val_load, Device, loss_fn, eval_fn,
+                                                                 epoch, epochs)
             write_summary(train_writer_summary, valid_writer_summary, train_dict, valid_dict, step=epoch)
 
             if B_comet:
@@ -651,6 +650,34 @@ def train_GAN(training_model_G, training_model_D,
             train_process(comet, experiment)
 
 
+def Model_test(test_model: torch.nn.Module, model_path: str, output_dir: str,
+               loss_function: dict, eval_function: dict, test_load: torch.utils.data.DataLoader, Device: str):
+    epoch = 1
+    model_G_state = torch.load(model_path)
+    test_model.load_state_dict(model_G_state)
+    test_model = test_model.to(Device)
+    test_model.train(True)
+    with torch.no_grad:
+        test_loss, test_evaluation, test_dict = val_epoch(test_model, test_load, Device, loss_function, eval_function,
+                                                           epoch, Epochs=1)
+
+    print("-----------------------------------测试开启-----------------------------------")
+    print('Epoch: {}, \n'
+          'Mean Test Loss :{}, \n'
+          'Mean Validation: {}, \n'
+          .format(epoch, test_loss, test_evaluation))
+
+    # 验证阶段的结果可视化
+
+    save_path = os.path.join(output_dir, 'test_fig')
+    if not os.path.exists(save_path):
+        os.mkdir(save_path)
+    for i in range(len(test_load)):
+        visualize_save_pair(test_model, test_load, save_path, epoch, num=i)
+
+    print("-----------------------------------测试完成-----------------------------------")
+
+
 def GAN_test(test_model_G: torch.nn.Module, test_model_D: torch.nn.Module,
              model_G_path: str, output_dir: str,
              loss_function_G_: dict, loss_fn_G: dict, loss_fn_D: dict,
@@ -663,9 +690,10 @@ def GAN_test(test_model_G: torch.nn.Module, test_model_D: torch.nn.Module,
     test_model_D = test_model_D.to(Device)
     test_model_G.train(True)
     test_model_D.train(True)
-    test_loss_D, test_eval_D, test_loss_G, test_eval_G, test_dict = \
-        val_generator_epoch(test_model_G, test_model_D, test_load, Device, loss_function_G_,
-                            loss_fn_G, loss_fn_D, eval_fn_G, eval_fn_D, epoch=epoch, Epochs=1)
+    with torch.no_grad:
+        test_loss_D, test_eval_D, test_loss_G, test_eval_G, test_dict = \
+            val_generator_epoch(test_model_G, test_model_D, test_load, Device, loss_function_G_,
+                                loss_fn_G, loss_fn_D, eval_fn_G, eval_fn_D, epoch=epoch, Epochs=1)
     print("-----------------------------------测试开启-----------------------------------")
     print('Epoch: {}, \n'
           'Mean Test Loss D:{}, \n'

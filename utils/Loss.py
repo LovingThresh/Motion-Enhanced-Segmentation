@@ -58,3 +58,32 @@ class PerceptualLoss:
 def perceptual_loss(input, target):
     P = PerceptualLoss(nn.MSELoss())
     return 100 * P.get_loss(input, target)
+
+
+def gan_loss(input, target):
+    return -input.mean() if target else input.mean()
+
+
+def iou(input, target):
+
+    intersection = input * target
+    union = (input + target) - intersection
+    Iou = (torch.sum(intersection) + torch.tensor(1e-8)) / (torch.sum(union) + torch.tensor(1e-8))
+    return Iou
+
+
+def Asymmetry_Binary_Loss(input, target, alpha=100):
+    # 纯净状态下alpha为1
+    # 想要损失函数更加关心裂缝的标签值1
+    y_pred, y_true = input, target
+    y_true_0, y_pred_0 = y_true[:, 0, :, :] , y_pred[:, 0, :, :]
+    # y_true_0, y_pred_0 = y_true[:, :, :, 0] * 255, y_pred[:, :, :, 0] * 255
+    y_true_1, y_pred_1 = y_true[:, 1, :, :] * alpha, y_pred[:, 1, :, :] * alpha
+    mse = torch.nn.MSELoss()
+    return mse(y_true_0, y_pred_0) + mse(y_true_1, y_pred_1)
+
+
+def correlation(input, target):
+    input_vector =  input.reshape((1, -1))
+    target_vector = target.reshape((1, -1))
+    return torch.corrcoef(torch.cat([input_vector, target_vector], dim=0))[0, 1]
