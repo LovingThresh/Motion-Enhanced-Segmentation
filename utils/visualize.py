@@ -98,7 +98,7 @@ def visualize_save_pair(val_model: torch.nn.Module, train_loader, save_path, epo
     predict_tensor = val_model(input_tensor.cuda())
     predict_tensor_numpy = predict_tensor.detach().cpu().numpy()
     predict_tensor_numpy = predict_tensor_numpy.transpose(0, 2, 3, 1)
-    if predict_tensor_numpy.shape[-1] == 2:
+    if predict_tensor_numpy.shape[-1] != 3:
         predict_tensor_numpy = predict_tensor_numpy[:, :, :, 1].repeat(3, axis=-1)
     predict_tensor_numpy = predict_tensor_numpy.reshape(crop_size[0], crop_size[1], 3)
     predict_tensor_numpy = cv2.cvtColor(predict_tensor_numpy, cv2.COLOR_BGR2RGB)
