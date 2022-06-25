@@ -203,11 +203,12 @@ class ResnetGenerator(nn.Module):
         self.deblur_model = self.deblur_model.append(self.model_backbone_branch_2)
         self.deblur_model = self.deblur_model.append(self.model_backbone_branch_3)
 
-        self.deblur_model.requires_grad_(False)
-        self.model_node.requires_grad_(False)
-        self.model_backbone.requires_grad_(False)
-        self.model_backbone_branch_1.requires_grad_(False)
-        self.model_backbone_branch_2.requires_grad_(False)
+        # self.deblur_model.requires_grad_(False)
+        # self.model_node.requires_grad_(False)
+        # self.model_backbone.requires_grad_(False)
+        # self.model_backbone_branch_1.requires_grad_(False)
+        # self.model_backbone_branch_2.requires_grad_(False)
+        # self.model_backbone_branch_3.requires_grad_(False)
 
     def forward(self, input):
 
@@ -215,7 +216,8 @@ class ResnetGenerator(nn.Module):
         output = self.model_backbone(output)
         branch_1 = self.model_branch_1(output)
         branch_2 = self.model_branch_2(branch_1)
-        branch = nn.Sigmoid()(branch_2)
+        branch_3 = self.model_branch_3(branch_2)
+        branch = nn.Sigmoid()(branch_3)
         output = branch
         return output
 

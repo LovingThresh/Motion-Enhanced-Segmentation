@@ -4,7 +4,7 @@
 # @Email   : csu1704liuye@163.com | sy2113205@buaa.edu.cn
 # @File    : main.py
 # @Software: PyCharm
-
+import random
 from comet_ml import Experiment
 import mmcv
 
@@ -32,15 +32,20 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
 
 train_comet = False
-seed = 24
-seed_everything(24)
+
+random.seed(24)
+np.random.seed(24)
+torch.manual_seed(24)
+torch.cuda.manual_seed_all(24)
+# seed = 24
+# seed_everything(24)
 
 hyper_params = {
     "ex_number": 'EDSR_3080Ti',
     "raw_size": (3, 512, 512),
     "crop_size": (3, 256, 256),
     "input_size": (3, 256, 256),
-    "batch_size": 8,
+    "batch_size": 4,
     "learning_rate": 1e-4,
     "epochs": 100,
     "threshold": 0.6,
@@ -86,7 +91,7 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size)
 # ===============================================================================
 
 generator = define_G(3, 3, 64, 'resnet_9blocks', norm='instance')
-generator.load_state_dict(torch.load('New_double_head_generator.pt'))
+# generator.load_state_dict(torch.load('New_double_head_generator.pt'))
 # discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
 
 
