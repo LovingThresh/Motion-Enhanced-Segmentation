@@ -72,6 +72,30 @@ def iou(input, target):
     return Iou
 
 
+def pr(input, target):
+
+    tp = torch.sum(target * input)
+    pp = torch.sum(input)
+
+    return tp / (pp + 1e-8)
+
+
+def re(input, target):
+
+    tp = torch.sum(target * input)
+    pp = torch.sum(target)
+
+    return tp / (pp + 1e-8)
+
+
+def f1(input, target):
+
+    p = pr(input, target)
+    r = re(input, target)
+
+    return 2 * p * r / (p + r + 1e-8)
+
+
 def Asymmetry_Binary_Loss(input, target, alpha=100):
     # 纯净状态下alpha为1
     # 想要损失函数更加关心裂缝的标签值1

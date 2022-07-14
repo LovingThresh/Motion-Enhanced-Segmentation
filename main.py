@@ -4,7 +4,7 @@
 # @Email   : csu1704liuye@163.com | sy2113205@buaa.edu.cn
 # @File    : main.py
 # @Software: PyCharm
-import random
+
 from comet_ml import Experiment
 import mmcv
 
@@ -33,12 +33,12 @@ print(f"Using {device} device")
 
 train_comet = False
 
-random.seed(24)
-np.random.seed(24)
-torch.manual_seed(24)
-torch.cuda.manual_seed_all(24)
+# random.seed(24)
+# np.random.seed(24)
+# torch.manual_seed(24)
+# torch.cuda.manual_seed_all(24)
 # seed = 24
-# seed_everything(24)
+seed_everything(24)
 
 hyper_params = {
     "ex_number": 'EDSR_3080Ti',
@@ -91,7 +91,7 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size)
 # ===============================================================================
 
 generator = define_G(3, 3, 64, 'resnet_9blocks', norm='instance')
-# generator.load_state_dict(torch.load('New_double_head_generator.pt'))
+generator.load_state_dict(torch.load('New_double_head_generator.pt'))
 # discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
 
 
@@ -130,8 +130,8 @@ loss_function_G = {  # 'content_loss': pixel_loss,
 eval_function_psnr = torchmetrics.functional.image.psnr.peak_signal_noise_ratio
 eval_function_ssim = torchmetrics.functional.image.ssim.structural_similarity_index_measure
 eval_function_iou = iou
-eval_function_pr = torchmetrics.functional.precision
-eval_function_re = torchmetrics.functional.recall
+eval_function_pr = pr
+eval_function_re = re
 eval_function_acc = torchmetrics.functional.accuracy
 
 eval_function_D = {'eval_function_acc': eval_function_acc}

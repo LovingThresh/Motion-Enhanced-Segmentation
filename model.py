@@ -204,16 +204,27 @@ class ResnetGenerator(nn.Module):
         self.deblur_model = self.deblur_model.append(self.model_backbone_branch_3)
 
         # self.deblur_model.requires_grad_(False)
-        # self.model_node.requires_grad_(False)
+        self.model_node.requires_grad_(False)
         # self.model_backbone.requires_grad_(False)
-        # self.model_backbone_branch_1.requires_grad_(False)
-        # self.model_backbone_branch_2.requires_grad_(False)
-        # self.model_backbone_branch_3.requires_grad_(False)
+        self.model_backbone_branch_1.requires_grad_(False)
+        self.model_backbone_branch_2.requires_grad_(False)
+        self.model_backbone_branch_3.requires_grad_(False)
 
     def forward(self, input):
 
         output = self.model_node(input)
+
+        # model_branch_0 = []
+        # for i in range(4):
+        #     model_branch_0 += [
+        #         ResnetBlock(256, padding_type='reflect', norm_layer=nn.InstanceNorm2d, use_dropout=False,
+        #                     use_bias=False)
+        #     ]
+        # self.model_branch_0 = nn.Sequential(*model_branch_0)
+        # self.model_branch_0.cuda()
+
         output = self.model_backbone(output)
+        # branch_0 = self.model_branch_0(output)
         branch_1 = self.model_branch_1(output)
         branch_2 = self.model_branch_2(branch_1)
         branch_3 = self.model_branch_3(branch_2)
