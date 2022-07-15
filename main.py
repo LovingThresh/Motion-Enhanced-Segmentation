@@ -7,7 +7,7 @@
 
 from comet_ml import Experiment
 import mmcv
-
+import random
 # import torchmetrics.functional
 # from mmedit.models import MODELS
 from mmedit.models import LOSSES
@@ -33,12 +33,12 @@ print(f"Using {device} device")
 
 train_comet = False
 
-# random.seed(24)
-# np.random.seed(24)
-# torch.manual_seed(24)
-# torch.cuda.manual_seed_all(24)
+random.seed(24)
+np.random.seed(24)
+torch.manual_seed(24)
+torch.cuda.manual_seed_all(24)
 # seed = 24
-seed_everything(24)
+# seed_everything(24)
 
 hyper_params = {
     "ex_number": 'EDSR_3080Ti',
@@ -47,7 +47,7 @@ hyper_params = {
     "input_size": (3, 256, 256),
     "batch_size": 4,
     "learning_rate": 1e-4,
-    "epochs": 100,
+    "epochs": 40,
     "threshold": 0.6,
     "checkpoint": False,
     "Img_Recon": True,

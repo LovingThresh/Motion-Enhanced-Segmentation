@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import functools
 import numpy as np
-
+import copy
 
 ###############################################################################
 # Functions
@@ -117,6 +117,7 @@ class ResnetGenerator(nn.Module):
         self.ngf = ngf
         self.gpu_ids = gpu_ids
         self.use_parallel = use_parallel
+        self.norm_layer = norm_layer
 
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
@@ -173,11 +174,13 @@ class ResnetGenerator(nn.Module):
         model_branch_1 = [
             nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, output_padding=1, bias=use_bias),
             norm_layer(128),
+            # nn.Dropout(0.4),
             nn.ReLU(True)]
 
         model_branch_2 = [
             nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1, bias=use_bias),
             norm_layer(64),
+            # nn.Dropout(0.4),
             nn.ReLU(True),
         ]
         model_branch_3 = [
@@ -205,7 +208,7 @@ class ResnetGenerator(nn.Module):
 
         # self.deblur_model.requires_grad_(False)
         self.model_node.requires_grad_(False)
-        # self.model_backbone.requires_grad_(False)
+        self.model_backbone.requires_grad_(True)
         self.model_backbone_branch_1.requires_grad_(False)
         self.model_backbone_branch_2.requires_grad_(False)
         self.model_backbone_branch_3.requires_grad_(False)
