@@ -208,7 +208,9 @@ class ResnetGenerator(nn.Module):
 
         # self.deblur_model.requires_grad_(False)
         self.model_node.requires_grad_(True)
+        self.model_node.train(False)
         self.model_backbone.requires_grad_(True)
+        self.model_backbone.train(False)
         self.model_backbone_branch_1.requires_grad_(False)
         self.model_backbone_branch_2.requires_grad_(False)
         self.model_backbone_branch_3.requires_grad_(False)
