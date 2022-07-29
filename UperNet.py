@@ -213,7 +213,7 @@ def resnet50(pretrained_path=None, **kwargs):
     return model
 
 
-def resnet50(pretrained_path=None, **kwargs):
+def resnet101(pretrained_path=None, **kwargs):
     model = ResNet(Bottleneck, [3, 4, 23, 3], **kwargs)
     if pretrained_path is not None:
         model.load_state_dict(torch.load(pretrained_path), strict=False)
@@ -336,7 +336,7 @@ class UPerNet(nn.Module):
     def __init__(self, num_classes):
         super(UPerNet, self).__init__()
         self.num_classes = num_classes
-        self.backbone = ResNet.resnet50(replace_stride_with_dilation=[1, 2, 4])
+        self.backbone = resnet50(replace_stride_with_dilation=[1, 2, 4])
         self.in_channels = 2048
         self.channels = 512
         self.decoder = FPN_HEAD()
