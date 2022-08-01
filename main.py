@@ -12,7 +12,6 @@ import random
 # from mmedit.models import MODELS
 from mmedit.models import LOSSES
 
-
 import torchmetrics
 # import torchsummary
 import torch.optim as optim
@@ -22,11 +21,10 @@ from torch.utils.tensorboard import SummaryWriter
 
 from train import *
 from model import *
-
+from RepVGG import *
 from utils.Loss import *
 from utils.utils import seed_everything
 from utils.visualize import visualize_pair
-
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
@@ -90,9 +88,12 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size)
 # =                                     Model                                   =
 # ===============================================================================
 
-generator = define_G(3, 3, 64, 'resnet_9blocks', norm='instance')
-generator.load_state_dict(torch.load('New_double_head_generator.pt'))
-generator.apply(weights_init)
+# generator = define_G(3, 3, 64, 'resnet_9blocks', norm='instance')
+# generator.load_state_dict(torch.load('New_double_head_generator.pt'))
+deploy = False
+generator = RepVGG(num_blocks=[2, 4, 14, 1], num_classes=1000,
+                   width_multiplier=[0.75, 0.75, 0.75, 2.5], override_groups_map=None, deploy=deploy)
+# generator.apply(weights_init)
 # discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
 
 

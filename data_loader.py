@@ -76,7 +76,8 @@ class Motion_Blur_Dataset(Dataset):
             self.raw_mask = torch.tensor(self.raw_mask, dtype=torch.float32)
             self.raw_mask = torch.transpose(self.raw_mask, 0, 2)
             self.raw_mask = torch.transpose(self.raw_mask, 1, 2)
-        return self.blur_image, self.raw_image, self.raw_mask
+        # return self.blur_image, self.raw_image, self.raw_mask
+        return self.raw_image,  self.blur_image, self.raw_mask
 
 
 class ItemPool:
