@@ -239,10 +239,10 @@ class RepVGG(nn.Module):
         out = self.stage2(out)
         out = self.stage3(out)
         out = self.stage4(out)
-        out = nn.Sequential(*self.model_branch_1)(out)
-        out = nn.Sequential(*self.model_branch_2)(out)
-        out = nn.Sequential(*self.model_branch_3)(out)
-        out = nn.Sequential(*self.model_branch_4)(out)
+        out = nn.Sequential(*self.model_branch_1).cuda()(out)
+        out = nn.Sequential(*self.model_branch_2).cuda()(out)
+        out = nn.Sequential(*self.model_branch_3).cuda()(out)
+        out = nn.Sequential(*self.model_branch_4).cuda()(out)
         return out
 
 
