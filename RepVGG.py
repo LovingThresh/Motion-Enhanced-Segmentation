@@ -10,7 +10,7 @@ import functools
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional
-
+import torch.nn.functional as F
 from se_block import SEBlock
 
 
@@ -166,14 +166,16 @@ def get_norm_layer(norm_type='instance'):
     return norm_layer
 
 
+# 尝试在RepVGG中引入UperHead
 class RepVGG(nn.Module):
 
-    def __init__(self, num_blocks, num_classes=1000, width_multiplier=None, override_groups_map=None, deploy=False,
-                 use_se=False):
+    def __init__(self, num_blocks, num_classes=2, width_multiplier=None, override_groups_map=None, deploy=False,
+                 use_se=False, ):
         super(RepVGG, self).__init__()
 
         assert len(width_multiplier) == 4
 
+        self.num_classes = num_classes
         self.deploy = deploy
         self.override_groups_map = override_groups_map or dict()
         self.use_se = use_se
@@ -189,8 +191,13 @@ class RepVGG(nn.Module):
         self.stage2 = self._make_stage(int(128 * width_multiplier[1]), num_blocks[1], stride=2)
         self.stage3 = self._make_stage(int(256 * width_multiplier[2]), num_blocks[2], stride=2)
         self.stage4 = self._make_stage(int(512 * width_multiplier[3]), num_blocks[3], stride=1)
-        self.gap = nn.AdaptiveAvgPool2d(output_size=1)
-        self.linear = nn.Linear(int(512 * width_multiplier[3]), num_classes)
+        self.decoder = FPN_HEAD()
+        self.cls_seg = nn.Sequential(
+            nn.Conv2d(96, self.num_classes, kernel_size=3, padding=1),
+        )
+        self.cls_softmax = nn.Softmax()
+        # self.gap = nn.AdaptiveAvgPool2d(output_size=1)
+        # self.linear = nn.Linear(int(512 * width_multiplier[3]), num_classes)
 
     norm = 'instance'
     norm_layer = get_norm_layer(norm_type=norm)
@@ -208,41 +215,19 @@ class RepVGG(nn.Module):
         return nn.Sequential(*blocks)
 
     use_bias = False
-    model_branch_1 = [
-        nn.ConvTranspose2d(1280, 256, kernel_size=3, stride=2, padding=1, output_padding=1, bias=use_bias),
-        norm_layer(256),
-        # nn.Dropout(0.4),
-        nn.ReLU(True)]
-
-    model_branch_2 = [
-        nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, output_padding=1, bias=use_bias),
-        norm_layer(128),
-        # nn.Dropout(0.4),
-        nn.ReLU(True),
-    ]
-    model_branch_3 = [
-        nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1, bias=use_bias),
-        norm_layer(64),
-        # nn.Dropout(0.4),
-        nn.ReLU(True),
-    ]
-    model_branch_4 = [
-        nn.ConvTranspose2d(64, 2, kernel_size=3, stride=2, padding=1, output_padding=1, bias=use_bias),
-        norm_layer(2),
-        # nn.Dropout(0.4),
-        nn.Softmax(dim=1),
-    ]
 
     def forward(self, x):
-        out = self.stage0(x)
-        out = self.stage1(out)
-        out = self.stage2(out)
-        out = self.stage3(out)
-        out = self.stage4(out)
-        out = nn.Sequential(*self.model_branch_1).cuda()(out)
-        out = nn.Sequential(*self.model_branch_2).cuda()(out)
-        out = nn.Sequential(*self.model_branch_3).cuda()(out)
-        out = nn.Sequential(*self.model_branch_4).cuda()(out)
+        feature_0 = self.stage0(x)
+        feature_1 = self.stage1(feature_0)
+        feature_2 = self.stage2(feature_1)
+        feature_3 = self.stage3(feature_2)
+        feature_4 = self.stage4(feature_3)
+        # channels = [48, 48, 96, 192, 1280]
+        out = [feature_0, feature_1, feature_2, feature_3, feature_4]
+        out = self.decoder(out)
+        out = nn.functional.interpolate(out, size=(out.size(2) * 4, out.size(3) * 4), mode='bilinear', align_corners=True)
+        out = self.cls_seg(out)
+        out = self.cls_softmax(out)
         return out
 
 
@@ -255,3 +240,116 @@ def repvgg_model_convert(model: torch.nn.Module, save_path=None, do_copy=True):
     if save_path is not None:
         torch.save(model.state_dict(), save_path)
     return model
+
+
+class PPM_HEAD(nn.Module):
+    def __init__(self, in_channels, out_channels, pool_sizes=None, num_classes=31):
+        super(PPM_HEAD, self).__init__()
+        if pool_sizes is None:
+            pool_sizes = [1, 2, 3, 6]
+        self.pool_sizes = pool_sizes
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.num_classes = num_classes
+        self.psp_modules = PPM(self.pool_sizes, self.in_channels, self.out_channels)
+        self.final = nn.Sequential(
+            nn.Conv2d(self.in_channels + len(self.pool_sizes) * self.out_channels, 4 * self.out_channels, kernel_size=1),
+            nn.BatchNorm2d(4 * self.out_channels),
+            nn.ReLU()
+        )
+
+    def forward(self, x):
+
+        out = self.psp_modules(x)
+        out.append(x)
+        out = torch.cat(out, 1)
+        out = self.final(out)
+
+        return out
+
+
+class FPN_HEAD(nn.Module):
+    def __init__(self, channels=384):
+        super(FPN_HEAD, self).__init__()
+        self.PPM_HEAD = PPM_HEAD(in_channels=1280, out_channels=96)
+        self.Conv_fuse_1 = nn.Sequential(
+            nn.Conv2d(channels // 2, channels // 2, 1),
+            nn.BatchNorm2d(channels // 2),
+            nn.ReLU()
+        )
+        self.Conv_fuse_1_ = nn.Sequential(
+            nn.Conv2d(channels // 2 + channels, channels // 2, 1),
+            nn.BatchNorm2d(channels // 2),
+            nn.ReLU()
+        )
+        self.Conv_fuse_2 = nn.Sequential(
+            nn.Conv2d(channels // 4, channels // 4, 1),
+            nn.BatchNorm2d(channels // 4),
+            nn.ReLU()
+        )
+        self.Conv_fuse_2_ = nn.Sequential(
+            nn.Conv2d(channels // 2 + channels // 4, channels // 4, 1),
+            nn.BatchNorm2d(channels // 4),
+            nn.ReLU()
+        )
+        self.Conv_fuse_3 = nn.Sequential(
+            nn.Conv2d(channels // 8, channels // 8, 1),
+            nn.BatchNorm2d(channels // 8),
+            nn.ReLU()
+        )
+        self.Conv_fuse_3_ = nn.Sequential(
+            nn.Conv2d(channels // 4 + channels // 8, channels // 8, 1),
+            nn.BatchNorm2d(channels // 8),
+            nn.ReLU()
+        )
+
+        self.fuse_all = nn.Sequential(
+            nn.Conv2d(channels * 2 - channels // 8, channels // 4, 1),
+            nn.BatchNorm2d(channels // 4),
+            nn.ReLU()
+        )
+
+    def forward(self, input_fpn):
+        x1 = self.PPM_HEAD(input_fpn[-1])
+
+        x = nn.functional.interpolate(x1, size=(x1.size(2), x1.size(3)), mode='bilinear', align_corners=True)
+        x = torch.cat([x, self.Conv_fuse_1(input_fpn[-2])], dim=1)
+        x2 = self.Conv_fuse_1_(x)
+
+        x = nn.functional.interpolate(x2, size=(x2.size(2) * 2, x2.size(3) * 2), mode='bilinear', align_corners=True)
+        x = torch.cat([x, self.Conv_fuse_2(input_fpn[-3])], dim=1)
+        x3 = self.Conv_fuse_2_(x)
+
+        x = nn.functional.interpolate(x3, size=(x3.size(2) * 2, x3.size(3) * 2), mode='bilinear', align_corners=True)
+        x = torch.cat([x, self.Conv_fuse_3(input_fpn[-4])], dim=1)
+        x4 = self.Conv_fuse_3_(x)
+
+        x1 = F.interpolate(x1, x4.size()[-2:], mode='bilinear', align_corners=True)
+        x2 = F.interpolate(x2, x4.size()[-2:], mode='bilinear', align_corners=True)
+        x3 = F.interpolate(x3, x4.size()[-2:], mode='bilinear', align_corners=True)
+
+        x = self.fuse_all(torch.cat([x1, x2, x3, x4], 1))
+
+        return x
+
+
+# Decoder = FPN + PPM
+class PPM(nn.ModuleList):
+    def __init__(self, pool_sizes, in_channels, out_channels):
+        super(PPM, self).__init__()
+        self.pool_sizes = pool_sizes
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        for pool_size in pool_sizes:
+            self.append(nn.Sequential(
+                nn.AdaptiveAvgPool2d(pool_size),
+                nn.Conv2d(self.in_channels, self.out_channels, kernel_size=1)
+            ))
+
+    def forward(self, x):
+        out_puts = []
+        for ppm in self:
+            ppm_out = nn.functional.interpolate(ppm(x), size=(x.size(2), x.size(3)), mode='bilinear', align_corners=True)
+            out_puts.append(ppm_out)
+        return out_puts
+

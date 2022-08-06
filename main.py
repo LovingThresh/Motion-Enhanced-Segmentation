@@ -91,7 +91,7 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size)
 # generator = define_G(3, 3, 64, 'resnet_9blocks', norm='instance')
 # generator.load_state_dict(torch.load('New_double_head_generator.pt'))
 deploy = False
-generator = RepVGG(num_blocks=[2, 4, 14, 1], num_classes=1000,
+generator = RepVGG(num_blocks=[2, 4, 14, 1], num_classes=2,
                    width_multiplier=[0.75, 0.75, 0.75, 2.5], override_groups_map=None, deploy=deploy)
 # generator.apply(weights_init)
 # discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
