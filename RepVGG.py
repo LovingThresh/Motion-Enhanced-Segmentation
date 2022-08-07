@@ -195,7 +195,7 @@ class RepVGG(nn.Module):
         self.cls_seg = nn.Sequential(
             nn.Conv2d(96, self.num_classes, kernel_size=3, padding=1),
         )
-        self.cls_softmax = nn.Softmax()
+        self.cls_softmax = nn.Softmax(dim=1)
         # self.gap = nn.AdaptiveAvgPool2d(output_size=1)
         # self.linear = nn.Linear(int(512 * width_multiplier[3]), num_classes)
 
@@ -227,7 +227,7 @@ class RepVGG(nn.Module):
         out = self.decoder(out)
         out = nn.functional.interpolate(out, size=(out.size(2) * 4, out.size(3) * 4), mode='bilinear', align_corners=True)
         out = self.cls_seg(out)
-        out = self.cls_softmax(out)
+        # out = self.cls_softmax(out)
         return out
 
 

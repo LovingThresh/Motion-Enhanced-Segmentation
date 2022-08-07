@@ -6,14 +6,23 @@
 # @Software: PyCharm
 import os
 import json
+import time
+
 import torch
 import shutil
 import datetime
 import data_loader
 # from data_loader import ItemPool
 from torch.autograd import Variable
+from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader
+from torch.cuda.amp import autocast as autocast
 from utils.visualize import visualize_save_pair
+
+
+autocast_button = True
+if autocast_button:
+    scaler = GradScaler()
 
 # ==============================================================================
 # =                                 data                                       =
@@ -202,12 +211,22 @@ def train_epoch(train_model, train_load, Device, loss_fn, eval_fn, optimizer, sc
         # mask   = mask.to(Device)
         optimizer.zero_grad()
 
-        output = train_model(inputs)
-
-        loss, training_loss_sum, training_loss = \
-            calculate_loss(loss_fn, it, training_loss_sum, training_loss, output, target)
-        loss.backward()
-        optimizer.step()
+        if not autocast_button:
+            output = train_model(inputs)
+            loss, training_loss_sum, training_loss = \
+                calculate_loss(loss_fn, it, training_loss_sum, training_loss, output, target)
+            loss.backward()
+            optimizer.step()
+        else:
+            with torch.autocast(device_type='cuda', dtype=torch.float16):
+                output = train_model(inputs)
+                assert output.dtype is torch.float16
+                loss, training_loss_sum, training_loss = \
+                    calculate_loss(loss_fn, it, training_loss_sum, training_loss, output, target)
+                assert loss.dtype is torch.float32
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
         evaluation, training_eval_sum, training_evaluation = \
             calculate_eval(eval_fn, it, training_eval_sum, training_evaluation, output, target)
@@ -514,9 +533,8 @@ def train(training_model, optimizer, loss_fn, eval_fn,
     training_model = training_model.to(Device)
 
     def train_process(B_comet, experiment_comet, threshold_value=threshold, init_epoch_num=init_epoch):
-
         for epoch in range(init_epoch_num, epochs + init_epoch_num):
-
+            a = time.time()
             print(f'Epoch {epoch}/{epochs}')
             print('-' * 10)
 
@@ -562,7 +580,8 @@ def train(training_model, optimizer, loss_fn, eval_fn,
                     "lr_schedule_state_dict": scheduler.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict()
                 }, os.path.join(save_checkpoint_path, str(epoch) + '.pth'))
-
+            b = time.time()
+            print(b - a)
     if not comet:
         train_process(comet, experiment)
     else:
