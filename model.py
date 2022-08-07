@@ -230,11 +230,11 @@ class ResnetGenerator(nn.Module):
 
         output = self.model_backbone(output)
         # branch_0 = self.model_branch_0(output)
-        branch_1 = self.model_branch_1(output)
-        branch_2 = self.model_branch_2(branch_1)
-        branch_3 = self.model_branch_3(branch_2)
-        branch = nn.Sigmoid()(branch_3)
-        output = branch
+        branch_1 = self.model_backbone_branch_1(output)
+        branch_2 = self.model_backbone_branch_2(branch_1)
+        branch_3 = self.model_backbone_branch_3(branch_2)
+        # branch = nn.Sigmoid()(branch_3)
+        output = branch_3
         return output
 
 

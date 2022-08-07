@@ -19,8 +19,7 @@ from torch.utils.data import DataLoader
 from torch.cuda.amp import autocast as autocast
 from utils.visualize import visualize_save_pair
 
-
-autocast_button = True
+autocast_button = False
 if autocast_button:
     scaler = GradScaler()
 
@@ -71,6 +70,31 @@ def get_Motion_Image_Dataset(re_size, batch_size):
                                                    raw_mask_path=raw_test_mask_dir,
                                                    re_size=re_size,
                                                    data_txt=test_data_txt)
+
+    # when using weightedRandomSampler, it is already balanced random, so DO NOT shuffle again
+
+    Train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+    Val_loader = torch.utils.data.DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False)
+    Test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
+
+    return Train_loader, Val_loader, Test_loader
+
+
+def get_Fog_Image_Dataset(re_size, batch_size):
+    train_dataset = data_loader.Fog_Blur_Dataset(raw_image_path=raw_train_dir,
+                                                 raw_mask_path=raw_train_mask_dir,
+                                                 re_size=re_size,
+                                                 data_txt=train_data_txt)
+
+    val_dataset = data_loader.Fog_Blur_Dataset(raw_image_path=raw_val_dir,
+                                               raw_mask_path=raw_val_mask_dir,
+                                               re_size=re_size,
+                                               data_txt=val_data_txt)
+
+    test_dataset = data_loader.Fog_Blur_Dataset(raw_image_path=raw_test_dir,
+                                                raw_mask_path=raw_test_mask_dir,
+                                                re_size=re_size,
+                                                data_txt=test_data_txt)
 
     # when using weightedRandomSampler, it is already balanced random, so DO NOT shuffle again
 
@@ -174,11 +198,13 @@ def calculate_eval(eval_fn, it, training_eval_sum, training_evaluation, output, 
             for k, _ in eval_fn.items():
                 training_eval_sum[k] = 0
         for k, v in eval_fn.items():
-            # output, target = (output + 1) / 2, (target + 1) / 2
-            # output, target = output * 255, target * 255
-            output_ = (output[:, 1, :, :].reshape(-1) > 0.5).int()
-            target_ = (target[:, 1, :, :].reshape(-1) > 0.5).int()
-            evaluation = v(output_, target_)
+            # For Deblur
+            output, target = (output + 1) / 2, (target + 1) / 2
+            output, target = output * 255, target * 255
+            # For Segmentation
+            # output_ = (output[:, 1, :, :].reshape(-1) > 0.5).int()
+            # target_ = (target[:, 1, :, :].reshape(-1) > 0.5).int()
+            evaluation = v(output, target)
             training_evaluation[k] = evaluation.item()
             training_eval_sum[k] += evaluation.item()
     else:
@@ -220,10 +246,10 @@ def train_epoch(train_model, train_load, Device, loss_fn, eval_fn, optimizer, sc
         else:
             with torch.autocast(device_type='cuda', dtype=torch.float16):
                 output = train_model(inputs)
-                assert output.dtype is torch.float16
+                # assert output.dtype is torch.float16
                 loss, training_loss_sum, training_loss = \
                     calculate_loss(loss_fn, it, training_loss_sum, training_loss, output, target)
-                assert loss.dtype is torch.float32
+                # assert loss.dtype is torch.float32
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
@@ -534,7 +560,7 @@ def train(training_model, optimizer, loss_fn, eval_fn,
 
     def train_process(B_comet, experiment_comet, threshold_value=threshold, init_epoch_num=init_epoch):
         for epoch in range(init_epoch_num, epochs + init_epoch_num):
-            a = time.time()
+
             print(f'Epoch {epoch}/{epochs}')
             print('-' * 10)
 
@@ -580,8 +606,7 @@ def train(training_model, optimizer, loss_fn, eval_fn,
                     "lr_schedule_state_dict": scheduler.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict()
                 }, os.path.join(save_checkpoint_path, str(epoch) + '.pth'))
-            b = time.time()
-            print(b - a)
+
     if not comet:
         train_process(comet, experiment)
     else:
@@ -678,7 +703,7 @@ def Model_test(test_model: torch.nn.Module, model_path: str, output_dir: str,
     test_model.train(True)
     with torch.no_grad:
         test_loss, test_evaluation, test_dict = val_epoch(test_model, test_load, Device, loss_function, eval_function,
-                                                           epoch, Epochs=1)
+                                                          epoch, Epochs=1)
 
     print("-----------------------------------测试开启-----------------------------------")
     print('Epoch: {}, \n'

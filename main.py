@@ -43,9 +43,9 @@ hyper_params = {
     "raw_size": (3, 512, 512),
     "crop_size": (3, 256, 256),
     "input_size": (3, 256, 256),
-    "batch_size": 4,
+    "batch_size": 8,
     "learning_rate": 1e-4,
-    "epochs": 1,
+    "epochs": 200,
     "threshold": 0.6,
     "checkpoint": False,
     "Img_Recon": True,
@@ -80,7 +80,7 @@ if train_comet:
 # =                                     Data                                    =
 # ===============================================================================
 
-train_loader, val_loader, test_loader = get_Motion_Image_Dataset(re_size=raw_size, batch_size=batch_size)
+train_loader, val_loader, test_loader = get_Fog_Image_Dataset(re_size=raw_size, batch_size=batch_size)
 a = next(iter(train_loader))
 visualize_pair(train_loader, input_size=input_size, crop_size=crop_size)
 
@@ -88,13 +88,13 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size)
 # =                                     Model                                   =
 # ===============================================================================
 
-# generator = define_G(3, 3, 64, 'resnet_9blocks', norm='instance')
+generator = define_G(3, 3, 64, 'resnet_9blocks', norm='instance')
 # generator.load_state_dict(torch.load('New_double_head_generator.pt'))
-deploy = False
-generator = RepVGG(num_blocks=[2, 4, 14, 1], num_classes=2,
-                   width_multiplier=[0.75, 0.75, 0.75, 2.5], override_groups_map=None, deploy=deploy)
-# generator.apply(weights_init)
-# discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
+# deploy = False
+# generator = RepVGG(num_blocks=[2, 4, 14, 1], num_classes=2,
+#                    width_multiplier=[0.75, 0.75, 0.75, 2.5], override_groups_map=None, deploy=deploy)
+generator.apply(weights_init)
+discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
 
 
 # model = ResNet(101, double_input=Img_Recon)
@@ -123,7 +123,7 @@ pixel_loss = mmcv.build_from_cfg(pixel_loss, LOSSES)
 
 loss_function_D = {'loss_function_dis': nn.BCELoss()}
 
-loss_function_G_ = {'loss_function_gen': Asymmetry_Binary_Loss}
+loss_function_G_ = {'loss_function_dis': nn.BCELoss()}
 
 loss_function_G = {  # 'content_loss': pixel_loss,
     'perceptual_loss': perceptual_loss
@@ -137,21 +137,21 @@ eval_function_re = re
 eval_function_acc = torchmetrics.functional.accuracy
 
 eval_function_D = {'eval_function_acc': eval_function_acc}
-# eval_function_G = {'eval_function_psnr': eval_function_psnr,
-#                    'eval_function_ssim': eval_function_ssim,
-#                    'eval_function_coef': correlation}
-eval_function_G = {'eval_function_iou': eval_function_iou,
-                   'eval_function_pr': eval_function_pr,
-                   'eval_function_re': eval_function_re,
-                   'eval_function_acc': eval_function_acc,
-                   }
-# optimizer_ft_D = optim.Adam(discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
+eval_function_G = {'eval_function_psnr': eval_function_psnr,
+                   'eval_function_ssim': eval_function_ssim,
+                   'eval_function_coef': correlation}
+# eval_function_G = {'eval_function_iou': eval_function_iou,
+#                    'eval_function_pr': eval_function_pr,
+#                    'eval_function_re': eval_function_re,
+#                    'eval_function_acc': eval_function_acc,
+#                    }
+optimizer_ft_D = optim.Adam(discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
 optimizer_ft_G = optim.Adam(generator.parameters(), lr=lr, betas=(0.5, 0.999))
 
 # exp_lr_scheduler_D = lr_scheduler.CosineAnnealingLR(optimizer_ft_D, int(Epochs / 10))
 # exp_lr_scheduler_G = lr_scheduler.CosineAnnealingLR(optimizer_ft_G, int(Epochs / 10))
 
-# exp_lr_scheduler_D = lr_scheduler.StepLR(optimizer_ft_D, step_size=5, gamma=0.5)
+exp_lr_scheduler_D = lr_scheduler.StepLR(optimizer_ft_D, step_size=5, gamma=0.5)
 exp_lr_scheduler_G = lr_scheduler.StepLR(optimizer_ft_G, step_size=5, gamma=0.5)
 
 # ===============================================================================
@@ -182,14 +182,14 @@ if Checkpoint:
 # =                                    Training                                 =
 # ===============================================================================
 
-train(generator, optimizer_ft_G, loss_function_G_, eval_function_G,
-      train_loader, val_loader, Epochs, exp_lr_scheduler_G,
-      device, threshold, output_dir, train_writer, val_writer, experiment, train_comet)
+# train(generator, optimizer_ft_G, loss_function_G_, eval_function_G,
+#       train_loader, val_loader, Epochs, exp_lr_scheduler_G,
+#       device, threshold, output_dir, train_writer, val_writer, experiment, train_comet)
 
-# train_GAN(generator, discriminator, optimizer_ft_G, optimizer_ft_D,
-#           loss_function_G_, loss_function_G, loss_function_D, exp_lr_scheduler_G, exp_lr_scheduler_D,
-#           eval_function_G, eval_function_D, train_loader, val_loader, Epochs, device, threshold,
-#           output_dir, train_writer, val_writer, experiment, train_comet)
+train_GAN(generator, discriminator, optimizer_ft_G, optimizer_ft_D,
+          loss_function_G_, loss_function_G, loss_function_D, exp_lr_scheduler_G, exp_lr_scheduler_D,
+          eval_function_G, eval_function_D, train_loader, val_loader, Epochs, device, threshold,
+          output_dir, train_writer, val_writer, experiment, train_comet)
 
 
 # G_path = 'E:/BJM/Motion_Image/2022-06-10-14-12-27.500277/save_model/Epoch_8_eval_22.14645609362372.pt'
