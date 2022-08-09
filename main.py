@@ -43,7 +43,7 @@ hyper_params = {
     "raw_size": (3, 512, 512),
     "crop_size": (3, 256, 256),
     "input_size": (3, 256, 256),
-    "batch_size": 8,
+    "batch_size": 4,
     "learning_rate": 1e-4,
     "epochs": 200,
     "threshold": 0.6,
@@ -93,7 +93,7 @@ generator = define_G(3, 3, 64, 'resnet_9blocks', norm='instance')
 # deploy = False
 # generator = RepVGG(num_blocks=[2, 4, 14, 1], num_classes=2,
 #                    width_multiplier=[0.75, 0.75, 0.75, 2.5], override_groups_map=None, deploy=deploy)
-generator.apply(weights_init)
+# generator.apply(weights_init)
 discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
 
 

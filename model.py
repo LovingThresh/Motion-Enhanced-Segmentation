@@ -211,9 +211,9 @@ class ResnetGenerator(nn.Module):
         self.model_node.train(True)
         self.model_backbone.requires_grad_(True)
         self.model_backbone.train(True)
-        self.model_backbone_branch_1.requires_grad_(False)
-        self.model_backbone_branch_2.requires_grad_(False)
-        self.model_backbone_branch_3.requires_grad_(False)
+        self.model_backbone_branch_1.requires_grad_(True)
+        self.model_backbone_branch_2.requires_grad_(True)
+        self.model_backbone_branch_3.requires_grad_(True)
 
     def forward(self, input):
 
@@ -233,8 +233,8 @@ class ResnetGenerator(nn.Module):
         branch_1 = self.model_backbone_branch_1(output)
         branch_2 = self.model_backbone_branch_2(branch_1)
         branch_3 = self.model_backbone_branch_3(branch_2)
-        # branch = nn.Sigmoid()(branch_3)
-        output = branch_3
+        # branch = branch_3
+        output = torch.clamp(input + branch_3, min=-1, max=1)
         return output
 
 

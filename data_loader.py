@@ -77,7 +77,7 @@ class Motion_Blur_Dataset(Dataset):
         # return self.raw_image, self.blur_image, self.raw_mask
 
 
-def get_Fog_blur_image(input: np.ndarray, brightness=0.5, concentration=0.08, center=None):
+def get_Fog_blur_image(input: np.ndarray, brightness=0.5, concentration=0.05, center=None):
     img_fog = input / 255.
     (row, col, chs) = input.shape
     size = math.sqrt(max(row, col))
