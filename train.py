@@ -231,7 +231,7 @@ def train_epoch(train_model, train_load, Device, loss_fn, eval_fn, optimizer, sc
     for batch in train_load:
         it = it + 1
 
-        inputs, _, target = batch
+        inputs, target, _ = batch
         inputs = inputs.to(Device)
         target = target.to(Device)
         # mask   = mask.to(Device)

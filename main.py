@@ -22,6 +22,7 @@ from torch.utils.tensorboard import SummaryWriter
 from train import *
 from model import *
 from RepVGG import *
+from MSBDN_RDFF import *
 from utils.Loss import *
 from utils.utils import seed_everything
 from utils.visualize import visualize_pair
@@ -46,7 +47,7 @@ hyper_params = {
     "batch_size": 4,
     "learning_rate": 1e-4,
     "epochs": 200,
-    "threshold": 0.6,
+    "threshold": 22,
     "checkpoint": False,
     "Img_Recon": True,
     "src_path": 'E:/BJM/Motion_Image',
@@ -88,7 +89,8 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size)
 # =                                     Model                                   =
 # ===============================================================================
 
-generator = define_G(3, 3, 64, 'resnet_9blocks', norm='instance')
+# generator = define_G(3, 3, 64, 'resnet_9blocks', norm='instance')
+generator = Net()
 # generator.load_state_dict(torch.load('New_double_head_generator.pt'))
 # deploy = False
 # generator = RepVGG(num_blocks=[2, 4, 14, 1], num_classes=2,
@@ -123,7 +125,7 @@ pixel_loss = mmcv.build_from_cfg(pixel_loss, LOSSES)
 
 loss_function_D = {'loss_function_dis': nn.BCELoss()}
 
-loss_function_G_ = {'loss_function_dis': nn.BCELoss()}
+loss_function_G_ = {'loss_function_dis': nn.MSELoss(size_average=True)}
 
 loss_function_G = {  # 'content_loss': pixel_loss,
     'perceptual_loss': perceptual_loss
