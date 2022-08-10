@@ -194,7 +194,7 @@ def calculate_loss(loss_fn, it, training_loss_sum, training_loss, output, target
     return loss, training_loss_sum, training_loss
 
 
-def calculate_eval(eval_fn, it, training_eval_sum, training_evaluation, output, target):
+def calculate_eval(eval_fn, it, training_eval_sum, training_evaluation, output, target, mode='image'):
     evaluation = 0
     if isinstance(eval_fn, dict):
         if it == 1:
@@ -202,11 +202,13 @@ def calculate_eval(eval_fn, it, training_eval_sum, training_evaluation, output, 
                 training_eval_sum[k] = 0
         for k, v in eval_fn.items():
             # For Deblur
-            output, target = (output + 1) / 2, (target + 1) / 2
-            output, target = output * 255, target * 255
+            if mode == 'image':
+                output, target = (output + 1) / 2, (target + 1) / 2
+                output, target = output * 255, target * 255
             # For Segmentation
-            # output_ = (output[:, 1, :, :].reshape(-1) > 0.5).int()
-            # target_ = (target[:, 1, :, :].reshape(-1) > 0.5).int()
+            else:
+                output_ = (output[:, 1, :, :].reshape(-1) > 0.5).int()
+                target_ = (target[:, 1, :, :].reshape(-1) > 0.5).int()
             evaluation = v(output, target)
             training_evaluation[k] = evaluation.item()
             training_eval_sum[k] += evaluation.item()
@@ -240,7 +242,7 @@ def train_epoch(train_model, train_load, Device, loss_fn, eval_fn, optimizer, sc
         mask   = mask.to(Device)
         optimizer.zero_grad()
 
-        if mode is not 'image':
+        if mode != 'image':
             target = mask
 
         if not autocast_button:
@@ -261,7 +263,7 @@ def train_epoch(train_model, train_load, Device, loss_fn, eval_fn, optimizer, sc
             scaler.update()
 
         evaluation, training_eval_sum, training_evaluation = \
-            calculate_eval(eval_fn, it, training_eval_sum, training_evaluation, output, target)
+            calculate_eval(eval_fn, it, training_eval_sum, training_evaluation, output, target, mode=mode)
 
         training_loss_mean = operate_dict_mean(training_loss_sum, it)
         training_eval_mean = operate_dict_mean(training_eval_sum, it)
@@ -411,7 +413,7 @@ def train_generator_epoch(train_model_G, train_model_D,
     return training_loss_mean_D, training_eval_mean_D, training_loss_mean_G, training_eval_mean_G, training_dict
 
 
-def val_epoch(valid_model, val_load, Device, loss_fn, eval_fn, epoch, Epochs):
+def val_epoch(valid_model, val_load, Device, loss_fn, eval_fn, epoch, Epochs, mode='image'):
     it = 0
     valid_loss = {}
     valid_evaluation = {}
@@ -424,18 +426,19 @@ def val_epoch(valid_model, val_load, Device, loss_fn, eval_fn, epoch, Epochs):
 
     for batch in val_load:
         it = it + 1
-        inputs, _, target = batch
+        inputs, target, mask = batch
 
         inputs = inputs.to(Device)
         output = valid_model(inputs)
         target = target.to(Device)
-        # mask   = mask.to(Device)
-
+        mask   = mask.to(Device)
+        if mode != 'image':
+            target = mask
         loss, valid_loss_sum, valid_loss = \
             calculate_loss(loss_fn, it, valid_loss_sum, valid_loss, output, target)
 
         evaluation, valid_eval_sum, valid_evaluation = \
-            calculate_eval(eval_fn, it, valid_eval_sum, valid_evaluation, output, target)
+            calculate_eval(eval_fn, it, valid_eval_sum, valid_evaluation, output, target, mode=mode)
 
         valid_loss_mean = operate_dict_mean(valid_loss_sum, it)
         valid_eval_mean = operate_dict_mean(valid_eval_sum, it)
@@ -460,7 +463,7 @@ def val_generator_epoch(train_model_G, train_model_D,
                         val_load, Device,
                         loss_function_G_, loss_fn_G, loss_fn_D,
                         eval_fn_G, eval_fn_D,
-                        epoch, Epochs):
+                        epoch, Epochs, mode='image'):
     it = 0
     training_loss_D = {}
     training_evaluation_D_Real = {}
@@ -522,7 +525,7 @@ def val_generator_epoch(train_model_G, train_model_D,
             calculate_loss(loss_fn_G, it, training_loss_sum_G, training_loss_G, fake_output, real_output)
         print(training_loss_G)
         _, training_eval_sum_G, training_evaluation_G = \
-            calculate_eval(eval_fn_G, it, training_eval_sum_G, training_evaluation_G, fake_output, real_output)
+            calculate_eval(eval_fn_G, it, training_eval_sum_G, training_evaluation_G, fake_output, real_output, mode=mode)
         print(training_evaluation_G)
 
         training_loss_mean_D = operate_dict_mean(training_loss_sum_D, it)
@@ -561,7 +564,7 @@ def write_summary(train_writer_summary, valid_writer_summary, train_dict, valid_
 def train(training_model, optimizer, loss_fn, eval_fn,
           train_load, val_load, epochs, scheduler, Device,
           threshold, output_dir, train_writer_summary, valid_writer_summary,
-          experiment, comet=False, init_epoch=1):
+          experiment, comet=False, init_epoch=1, mode='image'):
     training_model = training_model.to(Device)
 
     def train_process(B_comet, experiment_comet, threshold_value=threshold, init_epoch_num=init_epoch):
@@ -572,10 +575,10 @@ def train(training_model, optimizer, loss_fn, eval_fn,
 
             training_model.train(True)
             train_loss, train_evaluation, train_dict = train_epoch(training_model, train_load, Device, loss_fn, eval_fn,
-                                                                   optimizer, scheduler, epoch, epochs)
+                                                                   optimizer, scheduler, epoch, epochs, mode='image')
             with torch.no_grad():
                 val_loss, val_evaluation, valid_dict = val_epoch(training_model, val_load, Device, loss_fn, eval_fn,
-                                                                 epoch, epochs)
+                                                                 epoch, epochs, mode='image')
             write_summary(train_writer_summary, valid_writer_summary, train_dict, valid_dict, step=epoch)
 
             if B_comet:

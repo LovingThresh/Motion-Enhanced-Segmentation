@@ -45,7 +45,7 @@ def visualize_model(model: torch.nn.Module, image, image_pair=False):
         plot(prediction)
 
 
-def visualize_pair(train_loader, input_size, crop_size, plot_switch=True):
+def visualize_pair(train_loader, input_size, crop_size, plot_switch=True, mode='image'):
 
     a = next(iter(train_loader))
 
@@ -56,14 +56,17 @@ def visualize_pair(train_loader, input_size, crop_size, plot_switch=True):
     input_tensor_numpy = np.uint8(input_tensor_numpy * 255)
     if plot_switch:
         plot(input_tensor_numpy)
-
-    output_tensor_numpy = a[1][0:1].numpy()
+    if mode == 'image':
+        output_tensor_numpy = a[1][0:1].numpy()
+    else:
+        output_tensor_numpy = a[2][0:1].numpy()
     output_tensor_numpy = output_tensor_numpy.transpose(0, 2, 3, 1)
     if output_tensor_numpy.shape[-1] == 2:
         output_tensor_numpy = output_tensor_numpy[:, :, :, 1:].repeat(3, axis=-1)
     output_tensor_numpy = output_tensor_numpy.reshape(crop_size[0], crop_size[1], 3)
-    output_tensor_numpy = (output_tensor_numpy + 1) / 2
-    output_tensor_numpy = np.uint8(output_tensor_numpy * 255)
+    if mode != 'image':
+        output_tensor_numpy = (output_tensor_numpy + 1) / 2
+        output_tensor_numpy = np.uint8(output_tensor_numpy * 255)
     if plot_switch:
         plot(output_tensor_numpy)
 

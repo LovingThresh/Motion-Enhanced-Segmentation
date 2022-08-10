@@ -40,22 +40,24 @@ torch.cuda.manual_seed_all(24)
 # seed_everything(24)
 
 hyper_params = {
+    "mode": 'image',
     "ex_number": 'EDSR_3080Ti',
     "raw_size": (3, 512, 512),
     "crop_size": (3, 256, 256),
     "input_size": (3, 256, 256),
     "batch_size": 4,
     "learning_rate": 1e-4,
-    "epochs": 200,
+    "epochs": 20,
     "threshold": 22,
     "checkpoint": True,
     "Img_Recon": True,
     "src_path": 'E:/BJM/Motion_Image',
-    "check_path": 'E:/BJM/Motion_Image/2022-08-09-23-08-40.074911/save_model/Epoch_21_eval_30.990126642687567.pt'
+    "check_path": 'E:/BJM/Motion_Image/2022-08-11-00-16-38.089550/save_model/Epoch_3_eval_30.315437185353247.pt'
 }
 
 experiment = object
 lr = hyper_params['learning_rate']
+mode = hyper_params['mode']
 Epochs = hyper_params['epochs']
 src_path = hyper_params['src_path']
 batch_size = hyper_params['batch_size']
@@ -83,7 +85,7 @@ if train_comet:
 
 train_loader, val_loader, test_loader = get_Fog_Image_Dataset(re_size=raw_size, batch_size=batch_size)
 a = next(iter(train_loader))
-visualize_pair(train_loader, input_size=input_size, crop_size=crop_size)
+visualize_pair(train_loader, input_size=input_size, crop_size=crop_size, mode=mode)
 
 # ===============================================================================
 # =                                     Model                                   =
@@ -125,7 +127,7 @@ pixel_loss = mmcv.build_from_cfg(pixel_loss, LOSSES)
 
 loss_function_D = {'loss_function_dis': nn.BCELoss()}
 
-loss_function_G_ = {'loss_function_dis': nn.MSELoss(size_average=True)}
+loss_function_G_ = {'loss_function_dis': nn.MSELoss(reduction='mean')}
 
 loss_function_G = {  # 'content_loss': pixel_loss,
     'perceptual_loss': perceptual_loss
