@@ -48,10 +48,10 @@ hyper_params = {
     "learning_rate": 1e-4,
     "epochs": 200,
     "threshold": 22,
-    "checkpoint": False,
+    "checkpoint": True,
     "Img_Recon": True,
     "src_path": 'E:/BJM/Motion_Image',
-    "check_path": 'E:/BJM/Motion_Image/2022-06-09-14-08-01.137958/checkpoint/200.pth'
+    "check_path": 'E:/BJM/Motion_Image/2022-08-09-23-08-40.074911/save_model/Epoch_21_eval_30.990126642687567.pt'
 }
 
 experiment = object
@@ -171,7 +171,7 @@ val_writer = SummaryWriter('{}/valer_{}'.format(os.path.join(output_dir, 'summar
 
 if Checkpoint:
     checkpoint = torch.load(check_path)
-    generator.load_state_dict(checkpoint['model_state_dict'][0])
+    generator.load_state_dict(checkpoint)
     # discriminator.load_state_dict(checkpoint['model_state_dict'][1])
     # optimizer_ft.load_state_dict(checkpoint['optimizer_state_dict'])
     # for state in optimizer_ft.state.values():

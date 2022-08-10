@@ -70,7 +70,7 @@ def visualize_pair(train_loader, input_size, crop_size, plot_switch=True):
     return input_tensor_numpy, output_tensor_numpy
 
 
-def visualize_save_pair(val_model: torch.nn.Module, train_loader, save_path, epoch, num=0):
+def visualize_save_pair(val_model: torch.nn.Module, train_loader, save_path, epoch, num=0, mode='image'):
 
     a = next(iter(train_loader))
 
@@ -102,7 +102,8 @@ def visualize_save_pair(val_model: torch.nn.Module, train_loader, save_path, epo
         predict_tensor_numpy = predict_tensor_numpy[:, :, :, 1].repeat(3, axis=-1)
     predict_tensor_numpy = predict_tensor_numpy.reshape(crop_size[0], crop_size[1], 3)
     predict_tensor_numpy = cv2.cvtColor(predict_tensor_numpy, cv2.COLOR_BGR2RGB)
-    # predict_tensor_numpy = (predict_tensor_numpy + 1) / 2
+    if mode == 'image':
+        predict_tensor_numpy = (predict_tensor_numpy + 1) / 2
     cv2.imwrite('{}/{}_predict.jpg'.format(save_path, epoch + num), np.uint8(predict_tensor_numpy * 255))
 
 

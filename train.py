@@ -133,7 +133,10 @@ def copy_and_upload(experiment_, hyper_params_, comet, src_path):
     shutil.copy('main.py', output_dir)
     shutil.copy('model.py', output_dir)
     shutil.copy('train.py', output_dir)
+    shutil.copy('RepVGG.py', output_dir)
+    shutil.copy('MSBDN_RDFF.py', output_dir)
     shutil.copy('data_loader.py', output_dir)
+    shutil.copy('base_networks.py', output_dir)
 
     # 云端上次源代码
     if comet:
@@ -218,7 +221,7 @@ def calculate_eval(eval_fn, it, training_eval_sum, training_evaluation, output, 
     return evaluation, training_eval_sum, training_evaluation
 
 
-def train_epoch(train_model, train_load, Device, loss_fn, eval_fn, optimizer, scheduler, epoch, Epochs):
+def train_epoch(train_model, train_load, Device, loss_fn, eval_fn, optimizer, scheduler, epoch, Epochs, mode='image'):
     it = 0
     training_loss = {}
     training_evaluation = {}
@@ -231,11 +234,14 @@ def train_epoch(train_model, train_load, Device, loss_fn, eval_fn, optimizer, sc
     for batch in train_load:
         it = it + 1
 
-        inputs, target, _ = batch
+        inputs, target, mask = batch
         inputs = inputs.to(Device)
         target = target.to(Device)
-        # mask   = mask.to(Device)
+        mask   = mask.to(Device)
         optimizer.zero_grad()
+
+        if mode is not 'image':
+            target = mask
 
         if not autocast_button:
             output = train_model(inputs)
@@ -666,7 +672,7 @@ def train_GAN(training_model_G, training_model_D,
                           train_eval_D, train_eval_G, val_eval_D, val_eval_G))
 
             # 这一部分可以根据任务进行调整
-            if (val_eval_G['eval_function_psnr'] > threshold_value) | (val_eval_G['eval_function_ssim'] > 0.76):
+            if val_eval_G['eval_function_psnr'] > threshold_value:
                 torch.save(training_model_G.state_dict(),
                            os.path.join(output_dir, 'save_model',
                                         'Epoch_{}_eval_{}.pt'.format(epoch, val_eval_G['eval_function_psnr'])))
