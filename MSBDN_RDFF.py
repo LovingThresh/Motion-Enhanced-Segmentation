@@ -79,9 +79,9 @@ class ResidualBlock(torch.nn.Module):
 
 
 class Net(nn.Module):
-    def __init__(self, res_blocks=18):
+    def __init__(self, res_blocks=18, mode='image'):
         super(Net, self).__init__()
-
+        self.mode = mode
         self.conv_input = ConvLayer(3, 16, kernel_size=11, stride=1)
         self.dense0 = nn.Sequential(
             ResidualBlock(16),
@@ -161,6 +161,8 @@ class Net(nn.Module):
         self.fusion_1 = Decoder_MDCBlock1(8, 5, mode='iter2')
 
         self.conv_output = ConvLayer(16, 3, kernel_size=3, stride=1)
+        self.seg_output_0 = nn.Sequential(ResidualBlock(16))
+        self.seg_output_1 = ConvLayer(16, 2, kernel_size=3, stride=1)
 
     def forward(self, x):
         res1x = self.conv_input(x)
@@ -242,8 +244,10 @@ class Net(nn.Module):
         x_1 = self.fusion_1(x_1, feature_mem_up)
         x_2 = self.conv_1(x_2)
         x = torch.cat((x_1, x_2), dim=1)
-
-        x = self.conv_output(x)
-
+        if self.mode == 'image':
+            x = self.conv_output(x)
+        if self.mode == 'segmentation':
+            x = self.seg_output_0(x)
+            x = self.seg_output_1(x)
+            x = nn.Sigmoid()(x)
         return x
-

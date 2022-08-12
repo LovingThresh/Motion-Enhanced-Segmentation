@@ -64,9 +64,9 @@ def visualize_pair(train_loader, input_size, crop_size, plot_switch=True, mode='
     if output_tensor_numpy.shape[-1] == 2:
         output_tensor_numpy = output_tensor_numpy[:, :, :, 1:].repeat(3, axis=-1)
     output_tensor_numpy = output_tensor_numpy.reshape(crop_size[0], crop_size[1], 3)
-    if mode != 'image':
+    if mode == 'image':
         output_tensor_numpy = (output_tensor_numpy + 1) / 2
-        output_tensor_numpy = np.uint8(output_tensor_numpy * 255)
+    output_tensor_numpy = np.uint8(output_tensor_numpy * 255)
     if plot_switch:
         plot(output_tensor_numpy)
 
@@ -78,7 +78,10 @@ def visualize_save_pair(val_model: torch.nn.Module, train_loader, save_path, epo
     a = next(iter(train_loader))
 
     input_tensor = a[0][0:1]
-    output_tensor = a[1][0:1]
+    if mode == 'image':
+        output_tensor = a[1][0:1]
+    else:
+        output_tensor = a[2][0:1]
 
     input_size = (input_tensor.shape[2], input_tensor.shape[3])
     crop_size  = (output_tensor.shape[2], output_tensor.shape[3])
@@ -92,9 +95,13 @@ def visualize_save_pair(val_model: torch.nn.Module, train_loader, save_path, epo
 
     output_tensor_numpy = output_tensor.numpy()
     output_tensor_numpy = output_tensor_numpy.transpose(0, 2, 3, 1)
-    output_tensor_numpy = output_tensor_numpy.reshape(crop_size[0], crop_size[1], 3)
-    output_tensor_numpy = cv2.cvtColor(output_tensor_numpy, cv2.COLOR_BGR2RGB)
-    output_tensor_numpy = (output_tensor_numpy + 1) / 2
+    if mode == 'image':
+        output_tensor_numpy = output_tensor_numpy.reshape(crop_size[0], crop_size[1], 3)
+        output_tensor_numpy = cv2.cvtColor(output_tensor_numpy, cv2.COLOR_BGR2RGB)
+        output_tensor_numpy = (output_tensor_numpy + 1) / 2
+    else:
+        output_tensor_numpy = output_tensor_numpy.reshape(crop_size[0], crop_size[1], 2)
+        output_tensor_numpy = output_tensor_numpy[:, :, 1]
     cv2.imwrite('{}/{}_output.jpg'.format(save_path, epoch + num), np.uint8(output_tensor_numpy * 255))
 
     val_model.train(True)

@@ -40,19 +40,19 @@ torch.cuda.manual_seed_all(24)
 # seed_everything(24)
 
 hyper_params = {
-    "mode": 'image',
+    "mode": 'segmentation',
     "ex_number": 'EDSR_3080Ti',
     "raw_size": (3, 512, 512),
     "crop_size": (3, 256, 256),
     "input_size": (3, 256, 256),
     "batch_size": 4,
     "learning_rate": 1e-4,
-    "epochs": 20,
-    "threshold": 22,
-    "checkpoint": True,
+    "epochs": 100,
+    "threshold": 0.6,
+    "checkpoint": False,
     "Img_Recon": True,
     "src_path": 'E:/BJM/Motion_Image',
-    "check_path": 'E:/BJM/Motion_Image/2022-08-11-00-16-38.089550/save_model/Epoch_3_eval_30.315437185353247.pt'
+    "check_path": 'O:/Project/Motion_Image_Enhancement/MSBDN_RDFF_seg.pt'
 }
 
 experiment = object
@@ -91,8 +91,8 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size, mode=mo
 # =                                     Model                                   =
 # ===============================================================================
 
-# generator = define_G(3, 3, 64, 'resnet_9blocks', norm='instance')
-generator = Net()
+generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=False, norm='instance', mode=mode)
+# generator = Net(mode=mode)
 # generator.load_state_dict(torch.load('New_double_head_generator.pt'))
 # deploy = False
 # generator = RepVGG(num_blocks=[2, 4, 14, 1], num_classes=2,
@@ -127,7 +127,7 @@ pixel_loss = mmcv.build_from_cfg(pixel_loss, LOSSES)
 
 loss_function_D = {'loss_function_dis': nn.BCELoss()}
 
-loss_function_G_ = {'loss_function_dis': nn.MSELoss(reduction='mean')}
+loss_function_G_ = {'loss_function_dis': Asymmetry_Binary_Loss}
 
 loss_function_G = {  # 'content_loss': pixel_loss,
     'perceptual_loss': perceptual_loss
@@ -141,14 +141,14 @@ eval_function_re = re
 eval_function_acc = torchmetrics.functional.accuracy
 
 eval_function_D = {'eval_function_acc': eval_function_acc}
-eval_function_G = {'eval_function_psnr': eval_function_psnr,
-                   'eval_function_ssim': eval_function_ssim,
-                   'eval_function_coef': correlation}
-# eval_function_G = {'eval_function_iou': eval_function_iou,
-#                    'eval_function_pr': eval_function_pr,
-#                    'eval_function_re': eval_function_re,
-#                    'eval_function_acc': eval_function_acc,
-#                    }
+# eval_function_G = {'eval_function_psnr': eval_function_psnr,
+#                    'eval_function_ssim': eval_function_ssim,
+#                    'eval_function_coef': correlation}
+eval_function_G = {'eval_function_iou': eval_function_iou,
+                   'eval_function_pr': eval_function_pr,
+                   'eval_function_re': eval_function_re,
+                   'eval_function_acc': eval_function_acc,
+                   }
 optimizer_ft_D = optim.Adam(discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
 optimizer_ft_G = optim.Adam(generator.parameters(), lr=lr, betas=(0.5, 0.999))
 
@@ -186,14 +186,14 @@ if Checkpoint:
 # =                                    Training                                 =
 # ===============================================================================
 
-# train(generator, optimizer_ft_G, loss_function_G_, eval_function_G,
-#       train_loader, val_loader, Epochs, exp_lr_scheduler_G,
-#       device, threshold, output_dir, train_writer, val_writer, experiment, train_comet)
+train(generator, optimizer_ft_G, loss_function_G_, eval_function_G,
+      train_loader, val_loader, Epochs, exp_lr_scheduler_G,
+      device, threshold, output_dir, train_writer, val_writer, experiment, train_comet, mode=mode)
 
-train_GAN(generator, discriminator, optimizer_ft_G, optimizer_ft_D,
-          loss_function_G_, loss_function_G, loss_function_D, exp_lr_scheduler_G, exp_lr_scheduler_D,
-          eval_function_G, eval_function_D, train_loader, val_loader, Epochs, device, threshold,
-          output_dir, train_writer, val_writer, experiment, train_comet)
+# train_GAN(generator, discriminator, optimizer_ft_G, optimizer_ft_D,
+#           loss_function_G_, loss_function_G, loss_function_D, exp_lr_scheduler_G, exp_lr_scheduler_D,
+#           eval_function_G, eval_function_D, train_loader, val_loader, Epochs, device, threshold,
+#           output_dir, train_writer, val_writer, experiment, train_comet)
 
 
 # G_path = 'E:/BJM/Motion_Image/2022-06-10-14-12-27.500277/save_model/Epoch_8_eval_22.14645609362372.pt'

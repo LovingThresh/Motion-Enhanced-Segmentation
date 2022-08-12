@@ -203,13 +203,13 @@ def calculate_eval(eval_fn, it, training_eval_sum, training_evaluation, output, 
         for k, v in eval_fn.items():
             # For Deblur
             if mode == 'image':
-                output, target = (output + 1) / 2, (target + 1) / 2
-                output, target = output * 255, target * 255
+                output_, target_ = (output + 1) / 2, (target + 1) / 2
+                output_, target_ = output_ * 255, target_ * 255
             # For Segmentation
             else:
                 output_ = (output[:, 1, :, :].reshape(-1) > 0.5).int()
                 target_ = (target[:, 1, :, :].reshape(-1) > 0.5).int()
-            evaluation = v(output, target)
+            evaluation = v(output_, target_)
             training_evaluation[k] = evaluation.item()
             training_eval_sum[k] += evaluation.item()
     else:
@@ -575,10 +575,10 @@ def train(training_model, optimizer, loss_fn, eval_fn,
 
             training_model.train(True)
             train_loss, train_evaluation, train_dict = train_epoch(training_model, train_load, Device, loss_fn, eval_fn,
-                                                                   optimizer, scheduler, epoch, epochs, mode='image')
+                                                                   optimizer, scheduler, epoch, epochs, mode=mode)
             with torch.no_grad():
                 val_loss, val_evaluation, valid_dict = val_epoch(training_model, val_load, Device, loss_fn, eval_fn,
-                                                                 epoch, epochs, mode='image')
+                                                                 epoch, epochs, mode=mode)
             write_summary(train_writer_summary, valid_writer_summary, train_dict, valid_dict, step=epoch)
 
             if B_comet:
@@ -603,7 +603,7 @@ def train(training_model, optimizer, loss_fn, eval_fn,
 
             # 验证阶段的结果可视化
             save_path = os.path.join(output_dir, 'save_fig')
-            visualize_save_pair(training_model, val_load, save_path, epoch)
+            visualize_save_pair(training_model, val_load, save_path, epoch, mode=mode)
 
             if (epoch % 100) == 0:
                 save_checkpoint_path = os.path.join(output_dir, 'checkpoint')
