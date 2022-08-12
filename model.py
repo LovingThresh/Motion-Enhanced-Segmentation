@@ -196,14 +196,15 @@ class ResnetGenerator(nn.Module):
         self.segmentation_model = nn.Sequential(*model)
 
     def forward(self, input):
-        if self.gpu_ids and isinstance(input.data, torch.cuda.FloatTensor) and self.use_parallel:
-            output = nn.parallel.data_parallel(self.model, input, self.gpu_ids)
-        elif self.mode == 'image':
+        # if self.gpu_ids and isinstance(input.data, torch.cuda.FloatTensor) and self.use_parallel:
+        #     output = nn.parallel.data_parallel(self.model, input, self.gpu_ids)
+        if self.mode == 'image':
             output = self.model(input)
             output = nn.Tanh()(output)
         else:
             output = self.segmentation_model(input)
             output = nn.Sigmoid()(output)
+
         if self.learn_residual:
             # output = input + output
             output = torch.clamp(input + output, min=-1, max=1)

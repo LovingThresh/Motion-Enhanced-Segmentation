@@ -91,13 +91,18 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size, mode=mo
 # =                                     Model                                   =
 # ===============================================================================
 
-generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=False, norm='instance', mode=mode)
+if mode == 'image':
+    generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=False, norm='instance', mode=mode)
+elif mode == 'segmentation':
+    generator = define_G(3, 2, 64, 'resnet_9blocks', learn_residual=False, norm='instance', mode=mode)
+
 # generator = Net(mode=mode)
 # generator.load_state_dict(torch.load('New_double_head_generator.pt'))
 # deploy = False
 # generator = RepVGG(num_blocks=[2, 4, 14, 1], num_classes=2,
 #                    width_multiplier=[0.75, 0.75, 0.75, 2.5], override_groups_map=None, deploy=deploy)
 # generator.apply(weights_init)
+
 discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
 
 
@@ -127,7 +132,10 @@ pixel_loss = mmcv.build_from_cfg(pixel_loss, LOSSES)
 
 loss_function_D = {'loss_function_dis': nn.BCELoss()}
 
-loss_function_G_ = {'loss_function_dis': Asymmetry_Binary_Loss}
+if mode == 'segmentation':
+    loss_function_G_ = {'loss_function_dis': Asymmetry_Binary_Loss}
+else:
+    loss_function_G_ = {'loss_function_dis': nn.MSELoss(reduce='mean')}
 
 loss_function_G = {  # 'content_loss': pixel_loss,
     'perceptual_loss': perceptual_loss
