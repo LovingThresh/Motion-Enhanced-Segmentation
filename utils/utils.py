@@ -4,6 +4,8 @@
 # @Email   : csu1704liuye@163.com | sy2113205@buaa.edu.cn
 # @File    : utils.py
 # @Software: PyCharm
+import os
+
 import torch
 import random
 import numpy as np
@@ -13,7 +15,7 @@ def dict_slice(adict, start, end):
     keys = adict.keys()
     dict_ = {}
     for k in list(keys)[start:end]:
-        c = k[15:]
+        c = k
         dict_[c] = adict[k]
     return dict_
 

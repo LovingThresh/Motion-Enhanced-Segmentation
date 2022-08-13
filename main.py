@@ -24,7 +24,7 @@ from model import *
 from RepVGG import *
 from MSBDN_RDFF import *
 from utils.Loss import *
-from utils.utils import seed_everything
+from utils.utils import seed_everything, dict_load
 from utils.visualize import visualize_pair
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -47,7 +47,7 @@ hyper_params = {
     "input_size": (3, 256, 256),
     "batch_size": 4,
     "learning_rate": 1e-4,
-    "epochs": 100,
+    "epochs": 10,
     "threshold": 0.6,
     "checkpoint": False,
     "Img_Recon": True,
@@ -93,11 +93,11 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size, mode=mo
 
 if mode == 'image':
     generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=False, norm='instance', mode=mode)
-elif mode == 'segmentation':
+else:
     generator = define_G(3, 2, 64, 'resnet_9blocks', learn_residual=False, norm='instance', mode=mode)
 
 # generator = Net(mode=mode)
-# generator.load_state_dict(torch.load('New_double_head_generator.pt'))
+dict_load(generator.segmentation_model.state_dict(), torch.load('for_segmentation_model.pt'))
 # deploy = False
 # generator = RepVGG(num_blocks=[2, 4, 14, 1], num_classes=2,
 #                    width_multiplier=[0.75, 0.75, 0.75, 2.5], override_groups_map=None, deploy=deploy)
