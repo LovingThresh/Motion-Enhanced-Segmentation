@@ -165,10 +165,11 @@ class Net(nn.Module):
         self.seg_output_1 = ConvLayer(16, 2, kernel_size=3, stride=1)
 
     def forward(self, x):
+        # 那你为什么不在第一阶段融合呢？
         res1x = self.conv_input(x)
         res1x_1, res1x_2 = res1x.split([(res1x.size()[1] // 2), (res1x.size()[1] // 2)], dim=1)
         feature_mem = [res1x_1]
-        x = self.dense0(res1x) + res1x
+        x = self.dense0(res1x) + res1x  # dense是residual block
 
         res2x = self.conv2x(x)
         res2x_1, res2x_2 = res2x.split([(res2x.size()[1] // 2), (res2x.size()[1] // 2)], dim=1)
