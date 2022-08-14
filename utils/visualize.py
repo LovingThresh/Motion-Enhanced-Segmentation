@@ -76,12 +76,12 @@ def visualize_pair(train_loader, input_size, crop_size, plot_switch=True, mode='
 def visualize_save_pair(val_model: torch.nn.Module, train_loader, save_path, epoch, num=0, mode='image'):
 
     a = next(iter(train_loader))
-
-    input_tensor = a[0][0:1]
+    i = 1
+    input_tensor = a[0][0 + i: 1 + i]
     if mode == 'image':
-        output_tensor = a[1][0:1]
+        output_tensor = a[1][0 + i:1 + i]
     else:
-        output_tensor = a[2][0:1]
+        output_tensor = a[2][0 + i:1 + i]
 
     input_size = (input_tensor.shape[2], input_tensor.shape[3])
     crop_size  = (output_tensor.shape[2], output_tensor.shape[3])

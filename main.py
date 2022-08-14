@@ -32,10 +32,10 @@ print(f"Using {device} device")
 
 train_comet = False
 
-random.seed(24)
-np.random.seed(24)
-torch.manual_seed(24)
-torch.cuda.manual_seed_all(24)
+random.seed(48)
+np.random.seed(48)
+torch.manual_seed(48)
+torch.cuda.manual_seed_all(48)
 # seed = 24
 # seed_everything(24)
 
@@ -83,7 +83,7 @@ if train_comet:
 # =                                     Data                                    =
 # ===============================================================================
 
-train_loader, val_loader, test_loader = get_Fog_Image_Dataset(re_size=raw_size, batch_size=batch_size)
+train_loader, val_loader, test_loader = get_Motion_Image_Dataset(re_size=raw_size, batch_size=batch_size)
 a = next(iter(train_loader))
 visualize_pair(train_loader, input_size=input_size, crop_size=crop_size, mode=mode)
 
@@ -92,7 +92,7 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size, mode=mo
 # ===============================================================================
 
 if mode == 'image':
-    generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=False, norm='instance', mode=mode)
+    generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=True, norm='instance', mode=mode)
 else:
     generator = define_G(3, 2, 64, 'resnet_9blocks', learn_residual=False, norm='instance', mode=mode)
 
@@ -135,7 +135,7 @@ loss_function_D = {'loss_function_dis': nn.BCELoss()}
 if mode == 'segmentation':
     loss_function_G_ = {'loss_function_dis': Asymmetry_Binary_Loss}
 else:
-    loss_function_G_ = {'loss_function_dis': nn.MSELoss(reduction='mean')}
+    loss_function_G_ = {'loss_function_dis': nn.BCELoss()}
 
 loss_function_G = {  # 'content_loss': pixel_loss,
     'perceptual_loss': perceptual_loss
