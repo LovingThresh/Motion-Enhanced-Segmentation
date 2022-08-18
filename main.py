@@ -30,7 +30,7 @@ from utils.visualize import visualize_pair
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
 
-train_comet = False
+train_comet = True
 
 random.seed(48)
 np.random.seed(48)
@@ -41,7 +41,7 @@ torch.cuda.manual_seed_all(48)
 
 hyper_params = {
     "mode": 'segmentation',
-    "ex_number": 'EDSR_3080Ti',
+    "ex_number": 'EDSR_3080Ti_Segmentation_Init_New',
     "raw_size": (3, 512, 512),
     "crop_size": (3, 256, 256),
     "input_size": (3, 256, 256),
@@ -49,10 +49,10 @@ hyper_params = {
     "learning_rate": 1e-4,
     "epochs": 100,
     "threshold": 0.6,
-    "checkpoint": False,
+    "checkpoint": True,
     "Img_Recon": True,
     "src_path": 'E:/BJM/Motion_Image',
-    "check_path": 'O:/Project/Motion_Image_Enhancement/MSBDN_RDFF_seg.pt'
+    "check_path": 'earthquake_crack_init_model.pt'
 }
 
 experiment = object
@@ -184,6 +184,7 @@ val_writer = SummaryWriter('{}/valer_{}'.format(os.path.join(output_dir, 'summar
 if Checkpoint:
     checkpoint = torch.load(check_path)
     generator.load_state_dict(checkpoint)
+    print("Load CheckPoint!")
     # discriminator.load_state_dict(checkpoint['model_state_dict'][1])
     # optimizer_ft.load_state_dict(checkpoint['optimizer_state_dict'])
     # for state in optimizer_ft.state.values():

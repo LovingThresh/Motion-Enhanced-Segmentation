@@ -77,7 +77,7 @@ def pr(input, target):
     tp = torch.sum(target * input)
     pp = torch.sum(input)
 
-    return tp / (pp + 1e-8)
+    return (tp + torch.tensor(1e-8))  / (pp + torch.tensor(1e-8))
 
 
 def re(input, target):
@@ -85,7 +85,7 @@ def re(input, target):
     tp = torch.sum(target * input)
     pp = torch.sum(target)
 
-    return tp / (pp + 1e-8)
+    return (tp + torch.tensor(1e-8))  / (pp + torch.tensor(1e-8))
 
 
 def f1(input, target):

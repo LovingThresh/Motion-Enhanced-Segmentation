@@ -193,7 +193,6 @@ class ResnetGenerator(nn.Module):
         ]
 
         self.model = nn.Sequential(*model)
-        self.segmentation_model = nn.Sequential(*model)
 
     def forward(self, input):
         # if self.gpu_ids and isinstance(input.data, torch.cuda.FloatTensor) and self.use_parallel:
@@ -202,7 +201,7 @@ class ResnetGenerator(nn.Module):
             output = self.model(input)
             output = nn.Tanh()(output)
         else:
-            output = self.segmentation_model(input)
+            output = self.model(input)
             output = nn.Sigmoid()(output)
 
         if self.learn_residual:
