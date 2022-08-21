@@ -4,7 +4,8 @@
 # @Email   : csu1704liuye@163.com | sy2113205@buaa.edu.cn
 # @File    : main.py
 # @Software: PyCharm
-
+import torch.backends.cudnn
+import torchsummary
 from comet_ml import Experiment
 import mmcv
 import random
@@ -30,12 +31,18 @@ from utils.visualize import visualize_pair
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
 
-train_comet = True
+train_comet = False
+autocast_button = False
 
 random.seed(48)
 np.random.seed(48)
 torch.manual_seed(48)
 torch.cuda.manual_seed_all(48)
+
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
+
 # seed = 24
 # seed_everything(24)
 
@@ -45,14 +52,14 @@ hyper_params = {
     "raw_size": (3, 512, 512),
     "crop_size": (3, 256, 256),
     "input_size": (3, 256, 256),
-    "batch_size": 4,
+    "batch_size": 8,
     "learning_rate": 1e-4,
-    "epochs": 100,
+    "epochs": 4,
     "threshold": 0.6,
     "checkpoint": True,
     "Img_Recon": True,
     "src_path": 'E:/BJM/Motion_Image',
-    "check_path": 'earthquake_crack_init_model.pt'
+    "check_path": 'New_earthquake_crack_init_model.pt'
 }
 
 experiment = object
@@ -103,7 +110,7 @@ else:
 #                    width_multiplier=[0.75, 0.75, 0.75, 2.5], override_groups_map=None, deploy=deploy)
 # generator.apply(weights_init)
 
-discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
+# discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
 
 
 # model = ResNet(101, double_input=Img_Recon)
@@ -159,13 +166,13 @@ eval_function_G = {'eval_function_iou': eval_function_iou,
                    'eval_function_re': eval_function_re,
                    'eval_function_acc': eval_function_acc,
                    }
-optimizer_ft_D = optim.Adam(discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
+# optimizer_ft_D = optim.Adam(discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
 optimizer_ft_G = optim.Adam(generator.parameters(), lr=lr, betas=(0.5, 0.999))
 
 # exp_lr_scheduler_D = lr_scheduler.CosineAnnealingLR(optimizer_ft_D, int(Epochs / 10))
 # exp_lr_scheduler_G = lr_scheduler.CosineAnnealingLR(optimizer_ft_G, int(Epochs / 10))
 
-exp_lr_scheduler_D = lr_scheduler.StepLR(optimizer_ft_D, step_size=5, gamma=0.5)
+# exp_lr_scheduler_D = lr_scheduler.StepLR(optimizer_ft_D, step_size=5, gamma=0.5)
 exp_lr_scheduler_G = lr_scheduler.StepLR(optimizer_ft_G, step_size=5, gamma=0.5)
 
 # ===============================================================================

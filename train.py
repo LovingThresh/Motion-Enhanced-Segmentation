@@ -7,6 +7,7 @@
 import os
 import json
 import time
+import apex.amp as amp
 
 import torch
 import shutil
@@ -20,8 +21,6 @@ from torch.cuda.amp import autocast as autocast
 from utils.visualize import visualize_save_pair
 
 autocast_button = False
-if autocast_button:
-    scaler = GradScaler()
 
 # ==============================================================================
 # =                                 data                                       =
@@ -253,28 +252,26 @@ def train_epoch(train_model, train_load, Device, loss_fn, eval_fn, optimizer, sc
         inputs = inputs.to(Device)
         target = target.to(Device)
         mask   = mask.to(Device)
-        optimizer.zero_grad()
 
         if mode != 'image':
             target = mask
 
         if not autocast_button:
+            optimizer.zero_grad()
             output = train_model(inputs)
             loss, training_loss_sum, training_loss = \
                 calculate_loss(loss_fn, it, training_loss_sum, training_loss, output, target)
             loss.backward()
             optimizer.step()
+        elif autocast_button:
+            output = train_model(inputs)
+            loss, training_loss_sum, training_loss = \
+                calculate_loss(loss_fn, it, training_loss_sum, training_loss, output, target)
+            with amp.scale_loss(loss, optimizer) as scaled_loss:
+                scaled_loss.backward()
+            optimizer.step()
         else:
-            with torch.autocast(device_type='cuda', dtype=torch.float16):
-                output = train_model(inputs)
-                # assert output.dtype is torch.float16
-                loss, training_loss_sum, training_loss = \
-                    calculate_loss(loss_fn, it, training_loss_sum, training_loss, output, target)
-                # assert loss.dtype is torch.float32
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
-
+            raise NotImplementedError
         evaluation, training_eval_sum, training_evaluation = \
             calculate_eval(eval_fn, it, training_eval_sum, training_evaluation, output, target, mode=mode)
 
@@ -579,6 +576,10 @@ def train(training_model, optimizer, loss_fn, eval_fn,
           threshold, output_dir, train_writer_summary, valid_writer_summary,
           experiment, comet=False, init_epoch=1, mode='image'):
     training_model = training_model.to(Device)
+
+    if autocast_button:
+        opt_level = 'O1'
+        training_model, optimizer = amp.initialize(training_model, optimizer, opt_level=opt_level)
 
     def train_process(B_comet, experiment_comet, threshold_value=threshold, init_epoch_num=init_epoch):
         for epoch in range(init_epoch_num, epochs + init_epoch_num):
