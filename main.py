@@ -4,19 +4,22 @@
 # @Email   : csu1704liuye@163.com | sy2113205@buaa.edu.cn
 # @File    : main.py
 # @Software: PyCharm
-import torch.backends.cudnn
-import torchsummary
 from comet_ml import Experiment
+
+
+import torchsummary
+
 import mmcv
 import random
 # import torchmetrics.functional
 # from mmedit.models import MODELS
 from mmedit.models import LOSSES
+from mmseg.models import BACKBONES, HEADS, LOSSES
 
 import torchmetrics
 # import torchsummary
 import torch.optim as optim
-
+import torch.backends.cudnn
 from torch.optim import lr_scheduler
 from torch.utils.tensorboard import SummaryWriter
 
