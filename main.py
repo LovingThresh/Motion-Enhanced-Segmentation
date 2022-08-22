@@ -31,6 +31,7 @@ from utils.Loss import *
 from utils.utils import seed_everything, dict_load
 from utils.visualize import visualize_pair
 
+from FPN_DenseNet import FPNDense
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
 
@@ -50,16 +51,16 @@ torch.backends.cudnn.benchmark = False
 # seed_everything(24)
 
 hyper_params = {
-    "mode": 'segmentation',
+    "mode": 'image',
     "ex_number": 'EDSR_3080Ti_Segmentation_Init_New',
     "raw_size": (3, 512, 512),
     "crop_size": (3, 256, 256),
     "input_size": (3, 256, 256),
     "batch_size": 8,
     "learning_rate": 1e-4,
-    "epochs": 4,
-    "threshold": 0.6,
-    "checkpoint": True,
+    "epochs": 400,
+    "threshold": 28,
+    "checkpoint": False,
     "Img_Recon": True,
     "src_path": 'E:/BJM/Motion_Image',
     "check_path": 'New_earthquake_crack_init_model.pt'
@@ -100,11 +101,12 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size, mode=mo
 # ===============================================================================
 # =                                     Model                                   =
 # ===============================================================================
+generator = FPNDense()
 
-if mode == 'image':
-    generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=True, norm='instance', mode=mode)
-else:
-    generator = define_G(3, 2, 64, 'resnet_9blocks', learn_residual=False, norm='instance', mode=mode)
+# if mode == 'image':
+#     generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=True, norm='instance', mode=mode)
+# else:
+#     generator = define_G(3, 2, 64, 'resnet_9blocks', learn_residual=False, norm='instance', mode=mode)
 
 # generator = Net(mode=mode)
 # dict_load(generator.segmentation_model.state_dict(), torch.load('for_segmentation_model.pt'))
@@ -113,7 +115,7 @@ else:
 #                    width_multiplier=[0.75, 0.75, 0.75, 2.5], override_groups_map=None, deploy=deploy)
 # generator.apply(weights_init)
 
-# discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
+discriminator = define_D(3, 64, 'basic', use_sigmoid=True, norm='instance')
 
 
 # model = ResNet(101, double_input=Img_Recon)
@@ -137,8 +139,8 @@ else:
 # perceptual_loss = mmcv.build_from_cfg(perceptual_loss, LOSSES)
 
 
-pixel_loss = dict(type='L1Loss', loss_weight=10, reduction='mean')
-pixel_loss = mmcv.build_from_cfg(pixel_loss, LOSSES)
+# pixel_loss = dict(type='L1Loss', loss_weight=10, reduction='mean')
+# pixel_loss = mmcv.build_from_cfg(pixel_loss, LOSSES)
 
 loss_function_D = {'loss_function_dis': nn.BCELoss()}
 
@@ -160,22 +162,22 @@ eval_function_acc = torchmetrics.functional.accuracy
 
 eval_function_D = {'eval_function_acc': eval_function_acc}
 
-# eval_function_G = {'eval_function_psnr': eval_function_psnr,
-#                    'eval_function_ssim': eval_function_ssim,
-#                    'eval_function_coef': correlation}
+eval_function_G = {'eval_function_psnr': eval_function_psnr,
+                   'eval_function_ssim': eval_function_ssim,
+                   'eval_function_coef': correlation}
 
-eval_function_G = {'eval_function_iou': eval_function_iou,
-                   'eval_function_pr': eval_function_pr,
-                   'eval_function_re': eval_function_re,
-                   'eval_function_acc': eval_function_acc,
-                   }
-# optimizer_ft_D = optim.Adam(discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
+# eval_function_G = {'eval_function_iou': eval_function_iou,
+#                    'eval_function_pr': eval_function_pr,
+#                    'eval_function_re': eval_function_re,
+#                    'eval_function_acc': eval_function_acc,
+#                    }
+optimizer_ft_D = optim.Adam(discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
 optimizer_ft_G = optim.Adam(generator.parameters(), lr=lr, betas=(0.5, 0.999))
 
 # exp_lr_scheduler_D = lr_scheduler.CosineAnnealingLR(optimizer_ft_D, int(Epochs / 10))
 # exp_lr_scheduler_G = lr_scheduler.CosineAnnealingLR(optimizer_ft_G, int(Epochs / 10))
 
-# exp_lr_scheduler_D = lr_scheduler.StepLR(optimizer_ft_D, step_size=5, gamma=0.5)
+exp_lr_scheduler_D = lr_scheduler.StepLR(optimizer_ft_D, step_size=5, gamma=0.5)
 exp_lr_scheduler_G = lr_scheduler.StepLR(optimizer_ft_G, step_size=5, gamma=0.5)
 
 # ===============================================================================
@@ -207,14 +209,14 @@ if Checkpoint:
 # =                                    Training                                 =
 # ===============================================================================
 
-train(generator, optimizer_ft_G, loss_function_G_, eval_function_G,
-      train_loader, val_loader, Epochs, exp_lr_scheduler_G,
-      device, threshold, output_dir, train_writer, val_writer, experiment, train_comet, mode=mode)
+# train(generator, optimizer_ft_G, loss_function_G_, eval_function_G,
+#       train_loader, val_loader, Epochs, exp_lr_scheduler_G,
+#       device, threshold, output_dir, train_writer, val_writer, experiment, train_comet, mode=mode)
 
-# train_GAN(generator, discriminator, optimizer_ft_G, optimizer_ft_D,
-#           loss_function_G_, loss_function_G, loss_function_D, exp_lr_scheduler_G, exp_lr_scheduler_D,
-#           eval_function_G, eval_function_D, train_loader, val_loader, Epochs, device, threshold,
-#           output_dir, train_writer, val_writer, experiment, train_comet)
+train_GAN(generator, discriminator, optimizer_ft_G, optimizer_ft_D,
+          loss_function_G_, loss_function_G, loss_function_D, exp_lr_scheduler_G, exp_lr_scheduler_D,
+          eval_function_G, eval_function_D, train_loader, val_loader, Epochs, device, threshold,
+          output_dir, train_writer, val_writer, experiment, train_comet)
 
 
 # G_path = 'E:/BJM/Motion_Image/2022-06-10-14-12-27.500277/save_model/Epoch_8_eval_22.14645609362372.pt'

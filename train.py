@@ -40,31 +40,31 @@ autocast_button = False
 # raw_test_mask_dir = 'L:/ALASegmentationNets_v2/Data/Stage_4/test/mask/'
 
 
-# train_data_txt = 'L:/crack_segmentation_in_UAV_images/Dataset/train.txt'
-# val_data_txt = 'L:/crack_segmentation_in_UAV_images/Dataset/val.txt'
-# test_data_txt = 'L:/crack_segmentation_in_UAV_images/Dataset/test.txt'
+train_data_txt = 'L:/crack_segmentation_in_UAV_images/Dataset/train.txt'
+val_data_txt = 'L:/crack_segmentation_in_UAV_images/Dataset/val.txt'
+test_data_txt = 'L:/crack_segmentation_in_UAV_images/Dataset/test.txt'
+
+raw_train_dir = 'L:/crack_segmentation_in_UAV_images/Dataset/train/img/A/'
+raw_train_mask_dir = 'L:/crack_segmentation_in_UAV_images/Dataset/train/mask/'
+
+raw_val_dir = 'L:/crack_segmentation_in_UAV_images/Dataset/val/img/'
+raw_val_mask_dir = 'L:/crack_segmentation_in_UAV_images/Dataset/val/mask/'
+
+raw_test_dir = 'L:/crack_segmentation_in_UAV_images/Dataset/test/img/'
+raw_test_mask_dir = 'L:/crack_segmentation_in_UAV_images/Dataset/test/mask/'
+
+# train_data_txt = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/train.txt'
+# val_data_txt = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/val.txt'
+# test_data_txt = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/test.txt'
 #
-# raw_train_dir = 'L:/crack_segmentation_in_UAV_images/Dataset/train/img/A/'
-# raw_train_mask_dir = 'L:/crack_segmentation_in_UAV_images/Dataset/train/mask/'
+# raw_train_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/train/img/'
+# raw_train_mask_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/train/mask/'
 #
-# raw_val_dir = 'L:/crack_segmentation_in_UAV_images/Dataset/val/img/'
-# raw_val_mask_dir = 'L:/crack_segmentation_in_UAV_images/Dataset/val/mask/'
+# raw_val_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/val/img/'
+# raw_val_mask_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/val/mask/'
 #
-# raw_test_dir = 'L:/crack_segmentation_in_UAV_images/Dataset/test/img/'
-# raw_test_mask_dir = 'L:/crack_segmentation_in_UAV_images/Dataset/test/mask/'
-
-train_data_txt = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/train.txt'
-val_data_txt = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/val.txt'
-test_data_txt = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/test.txt'
-
-raw_train_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/train/img/'
-raw_train_mask_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/train/mask/'
-
-raw_val_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/val/img/'
-raw_val_mask_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/val/mask/'
-
-raw_test_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/test/img/'
-raw_test_mask_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/test/mask/'
+# raw_test_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/test/img/'
+# raw_test_mask_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/test/mask/'
 
 
 def get_Motion_Image_Dataset(re_size, batch_size):
