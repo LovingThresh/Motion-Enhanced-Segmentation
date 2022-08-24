@@ -58,12 +58,12 @@ hyper_params = {
     "input_size": (3, 256, 256),
     "batch_size": 4,
     "learning_rate": 1e-4,
-    "epochs": 400,
+    "epochs": 200,
     "threshold": 28,
-    "checkpoint": False,
+    "checkpoint": True,
     "Img_Recon": True,
-    "src_path": 'E:/BJM/Motion_Image',
-    "check_path": 'New_earthquake_crack_init_model.pt'
+    "src_path": 'F:/BJM/Motion_Image',
+    "check_path": r'F:\BJM\Motion_Image\2022-08-24-14-59-27.160160\save_model\Epoch_10_eval_16.614881643454233.pt'
 }
 
 experiment = object
@@ -164,7 +164,8 @@ eval_function_D = {'eval_function_acc': eval_function_acc}
 
 eval_function_G = {'eval_function_psnr': eval_function_psnr,
                    'eval_function_ssim': eval_function_ssim,
-                   'eval_function_coef': correlation}
+                   # 'eval_function_coef': correlation
+                   }
 
 # eval_function_G = {'eval_function_iou': eval_function_iou,
 #                    'eval_function_pr': eval_function_pr,
