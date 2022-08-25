@@ -107,7 +107,7 @@ def Asymmetry_Binary_Loss(input, target, alpha=100):
     return mse(y_true_0, y_pred_0) + mse(y_true_1, y_pred_1)
 
 
-# def correlation(input, target):
-#     input_vector =  input.reshape((1, -1))
-#     target_vector = target.reshape((1, -1))
-#     return torch.corrcoef(torch.cat([input_vector, target_vector], dim=0))[0, 1]
+def correlation(input, target):
+    input_vector =  input.reshape((1, -1))
+    target_vector = target.reshape((1, -1))
+    return torch.corrcoef(torch.cat([input_vector, target_vector], dim=0))[0, 1]

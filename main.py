@@ -52,7 +52,7 @@ torch.backends.cudnn.benchmark = False
 
 hyper_params = {
     "mode": 'image',
-    "ex_number": 'EDSR_3080Ti_Segmentation_Init_New',
+    "ex_number": 'EDSR_3080Ti_Image',
     "raw_size": (3, 512, 512),
     "crop_size": (3, 256, 256),
     "input_size": (3, 256, 256),
@@ -60,9 +60,9 @@ hyper_params = {
     "learning_rate": 1e-4,
     "epochs": 200,
     "threshold": 28,
-    "checkpoint": True,
+    "checkpoint": False,
     "Img_Recon": True,
-    "src_path": 'F:/BJM/Motion_Image',
+    "src_path": 'E:/BJM/Motion_Image',
     "check_path": r'F:\BJM\Motion_Image\2022-08-24-14-59-27.160160\save_model\Epoch_10_eval_16.614881643454233.pt'
 }
 
@@ -101,12 +101,12 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size, mode=mo
 # ===============================================================================
 # =                                     Model                                   =
 # ===============================================================================
-generator = FPNDense()
+# generator = FPNDense()
 
-# if mode == 'image':
-#     generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=True, norm='instance', mode=mode)
-# else:
-#     generator = define_G(3, 2, 64, 'resnet_9blocks', learn_residual=False, norm='instance', mode=mode)
+if mode == 'image':
+    generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=True, norm='instance', mode=mode)
+else:
+    generator = define_G(3, 2, 64, 'resnet_9blocks', learn_residual=False, norm='instance', mode=mode)
 
 # generator = Net(mode=mode)
 # dict_load(generator.segmentation_model.state_dict(), torch.load('for_segmentation_model.pt'))
@@ -164,7 +164,7 @@ eval_function_D = {'eval_function_acc': eval_function_acc}
 
 eval_function_G = {'eval_function_psnr': eval_function_psnr,
                    'eval_function_ssim': eval_function_ssim,
-                   # 'eval_function_coef': correlation
+                   'eval_function_coef': correlation
                    }
 
 # eval_function_G = {'eval_function_iou': eval_function_iou,
