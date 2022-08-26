@@ -7,6 +7,7 @@
 import os
 import json
 import time
+from accelerate import Accelerator
 import apex.amp as amp
 
 import torch
@@ -20,8 +21,8 @@ from torch.utils.data import DataLoader
 from torch.cuda.amp import autocast as autocast
 from utils.visualize import visualize_save_pair
 
-autocast_button = False
-
+accelerator = Accelerator()
+device = accelerator.device
 # ==============================================================================
 # =                                 data                                       =
 # ==============================================================================
@@ -251,27 +252,18 @@ def train_epoch(train_model, train_load, Device, loss_fn, eval_fn, optimizer, sc
         inputs, target, mask = batch
         inputs = inputs.to(Device)
         target = target.to(Device)
-        mask   = mask.to(Device)
+        mask = mask.to(Device)
 
         if mode != 'image':
             target = mask
 
-        if not autocast_button:
-            optimizer.zero_grad()
-            output = train_model(inputs)
-            loss, training_loss_sum, training_loss = \
-                calculate_loss(loss_fn, it, training_loss_sum, training_loss, output, target)
-            loss.backward()
-            optimizer.step()
-        elif autocast_button:
-            output = train_model(inputs)
-            loss, training_loss_sum, training_loss = \
-                calculate_loss(loss_fn, it, training_loss_sum, training_loss, output, target)
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
-            optimizer.step()
-        else:
-            raise NotImplementedError
+        optimizer.zero_grad()
+        output = train_model(inputs)
+        loss, training_loss_sum, training_loss = \
+            calculate_loss(loss_fn, it, training_loss_sum, training_loss, output, target)
+        accelerator.backward(loss)
+        optimizer.step()
+
         evaluation, training_eval_sum, training_evaluation = \
             calculate_eval(eval_fn, it, training_eval_sum, training_evaluation, output, target, mode=mode)
 
@@ -442,7 +434,7 @@ def val_epoch(valid_model, val_load, Device, loss_fn, eval_fn, epoch, Epochs, mo
         inputs = inputs.to(Device)
         output = valid_model(inputs)
         target = target.to(Device)
-        mask   = mask.to(Device)
+        mask = mask.to(Device)
         if mode != 'image':
             target = mask
         loss, valid_loss_sum, valid_loss = \
@@ -536,7 +528,8 @@ def val_generator_epoch(train_model_G, train_model_D,
             calculate_loss(loss_fn_G, it, training_loss_sum_G, training_loss_G, fake_output, real_output)
         print(training_loss_G)
         _, training_eval_sum_G, training_evaluation_G = \
-            calculate_eval(eval_fn_G, it, training_eval_sum_G, training_evaluation_G, fake_output, real_output, mode=mode)
+            calculate_eval(eval_fn_G, it, training_eval_sum_G, training_evaluation_G, fake_output, real_output,
+                           mode=mode)
         print(training_evaluation_G)
 
         training_loss_mean_D = operate_dict_mean(training_loss_sum_D, it)
@@ -576,11 +569,8 @@ def train(training_model, optimizer, loss_fn, eval_fn,
           train_load, val_load, epochs, scheduler, Device,
           threshold, output_dir, train_writer_summary, valid_writer_summary,
           experiment, comet=False, init_epoch=1, mode='image'):
-    training_model = training_model.to(Device)
-
-    if autocast_button:
-        opt_level = 'O1'
-        training_model, optimizer = amp.initialize(training_model, optimizer, opt_level=opt_level)
+    training_model, optimizer, train_load, val_load = accelerator.prepare(training_model, optimizer, train_load,
+                                                                          val_load)
 
     def train_process(B_comet, experiment_comet, threshold_value=threshold, init_epoch_num=init_epoch):
         for epoch in range(init_epoch_num, epochs + init_epoch_num):
@@ -644,8 +634,9 @@ def train_GAN(training_model_G, training_model_D,
               train_load, val_load, epochs, Device,
               threshold, output_dir, train_writer_summary, valid_writer_summary,
               experiment, comet=False, init_epoch=1):
-    training_model_G = training_model_G.to(Device)
-    training_model_D = training_model_D.to(Device)
+
+    training_model_G, training_model_D, optimizer_G, optimizer_D, train_load, val_load = \
+        accelerator.prepare(training_model_G, training_model_D, optimizer_G, optimizer_D, train_load, val_load)
 
     def train_process(B_comet, experiment_comet, threshold_value=threshold, init_epoch_num=init_epoch):
 
