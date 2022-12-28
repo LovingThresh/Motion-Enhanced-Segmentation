@@ -94,7 +94,7 @@ if train_comet:
 # =                                     Data                                    =
 # ===============================================================================
 
-train_loader, val_loader, test_loader = get_Motion_Image_Dataset(re_size=raw_size, batch_size=batch_size)
+train_loader, val_loader, test_loader = get_Raw_Motion_Image_Dataset(re_size=raw_size, batch_size=batch_size)
 a = next(iter(train_loader))
 visualize_pair(train_loader, input_size=input_size, crop_size=crop_size, mode=mode)
 

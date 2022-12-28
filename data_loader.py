@@ -98,7 +98,7 @@ class Raw_Motion_Blur_Dataset(Dataset):
         self.raw_image = cv2.resize(self.raw_image, self.re_size)
 
         self.blur_image = cv2.imread(os.path.join(self.raw_motion_blur_image_path, self.file_list[item].split(',')[0]))
-        self.blur_image = cv2.cvtColor(self.raw_image, cv2.COLOR_BGR2RGB)
+        self.blur_image = cv2.cvtColor(self.blur_image, cv2.COLOR_BGR2RGB)
         # self.blur_image = get_motion_blur_image(self.raw_image, 45, 10)
         # self.blur_image = get_motion_blur_image(self.blur_image, 180, 5)
         # utils.visualize.plot(self.raw_image)
