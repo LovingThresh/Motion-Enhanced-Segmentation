@@ -59,12 +59,15 @@ val_data_txt = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/val.txt'
 test_data_txt = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/test.txt'
 
 raw_train_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/train/img/'
+raw_blur_train_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/train/blur_img/'
 raw_train_mask_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/train/mask/'
 
 raw_val_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/val/img/'
+raw_blur_val_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/val/blur_img/'
 raw_val_mask_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/val/mask/'
 
 raw_test_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/test/img/'
+raw_blur_test_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/test/blur_img/'
 raw_test_mask_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/test/mask/'
 
 
@@ -83,6 +86,34 @@ def get_Motion_Image_Dataset(re_size, batch_size):
                                                    raw_mask_path=raw_test_mask_dir,
                                                    re_size=re_size,
                                                    data_txt=test_data_txt)
+
+    # when using weightedRandomSampler, it is already balanced random, so DO NOT shuffle again
+
+    Train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+    Val_loader = torch.utils.data.DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False)
+    Test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
+
+    return Train_loader, Val_loader, Test_loader
+
+
+def get_Raw_Motion_Image_Dataset(re_size, batch_size):
+    train_dataset = data_loader.Raw_Motion_Blur_Dataset(raw_image_path=raw_train_dir,
+                                                        raw_motion_blur_image_path=raw_blur_train_dir,
+                                                        raw_mask_path=raw_train_mask_dir,
+                                                        re_size=re_size,
+                                                        data_txt=train_data_txt)
+
+    val_dataset = data_loader.Raw_Motion_Blur_Dataset(raw_image_path=raw_val_dir,
+                                                      raw_motion_blur_image_path=raw_blur_val_dir,
+                                                      raw_mask_path=raw_val_mask_dir,
+                                                      re_size=re_size,
+                                                      data_txt=val_data_txt)
+
+    test_dataset = data_loader.Raw_Motion_Blur_Dataset(raw_image_path=raw_test_dir,
+                                                       raw_motion_blur_image_path=raw_blur_test_dir,
+                                                       raw_mask_path=raw_test_mask_dir,
+                                                       re_size=re_size,
+                                                       data_txt=test_data_txt)
 
     # when using weightedRandomSampler, it is already balanced random, so DO NOT shuffle again
 
@@ -634,7 +665,6 @@ def train_GAN(training_model_G, training_model_D,
               train_load, val_load, epochs, Device,
               threshold, output_dir, train_writer_summary, valid_writer_summary,
               experiment, comet=False, init_epoch=1):
-
     training_model_G, training_model_D, optimizer_G, optimizer_D, train_load, val_load = \
         accelerator.prepare(training_model_G, training_model_D, optimizer_G, optimizer_D, train_load, val_load)
 

@@ -13,8 +13,8 @@ import mmcv
 import random
 # import torchmetrics.functional
 # from mmedit.models import MODELS
-from mmedit.models import LOSSES
-from mmseg.models import BACKBONES, HEADS, LOSSES
+# from mmedit.models import LOSSES
+# from mmseg.models import BACKBONES, HEADS, LOSSES
 
 import torchmetrics
 # import torchsummary
@@ -62,7 +62,7 @@ hyper_params = {
     "threshold": 24,
     "checkpoint": False,
     "Img_Recon": True,
-    "src_path": 'E:/BJM/Motion_Image',
+    "src_path": 'F:/BJM/Motion_Image',
     "check_path": r'F:\BJM\Motion_Image\2022-08-24-14-59-27.160160\save_model\Epoch_10_eval_16.614881643454233.pt'
 }
 
