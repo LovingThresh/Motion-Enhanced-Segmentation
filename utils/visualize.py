@@ -86,14 +86,14 @@ def visualize_save_pair(val_model: torch.nn.Module, train_loader, save_path, epo
     input_size = (input_tensor.shape[2], input_tensor.shape[3])
     crop_size  = (output_tensor.shape[2], output_tensor.shape[3])
 
-    input_tensor_numpy = input_tensor.numpy()
+    input_tensor_numpy = input_tensor.cpu().numpy()
     input_tensor_numpy = input_tensor_numpy.transpose(0, 2, 3, 1)
     input_tensor_numpy = input_tensor_numpy.reshape(input_size[0], input_size[1], 3)
     input_tensor_numpy = cv2.cvtColor(input_tensor_numpy, cv2.COLOR_BGR2RGB)
     input_tensor_numpy = (input_tensor_numpy + 1) / 2
     cv2.imwrite('{}/{}_input.jpg'.format(save_path, epoch + num), np.uint8(input_tensor_numpy * 255))
 
-    output_tensor_numpy = output_tensor.numpy()
+    output_tensor_numpy = output_tensor.cpu().numpy()
     output_tensor_numpy = output_tensor_numpy.transpose(0, 2, 3, 1)
     if mode == 'image':
         output_tensor_numpy = output_tensor_numpy.reshape(crop_size[0], crop_size[1], 3)
