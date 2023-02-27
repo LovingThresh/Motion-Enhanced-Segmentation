@@ -99,3 +99,24 @@ for m in os.listdir('L:/6_UAV_earthquake_segmentation/ann_dir/'):
         image = cv2.resize(image, (512, 512))
         image = np.uint8(image[:, :, 0] > 127.5)
         cv2.imwrite(os.path.join('L:/6_UAV_earthquake_segmentation/ann_dir/', m, n), image)
+
+
+train_path, val_path, test_path = \
+    'L:/7_UAV_crack_segmentation/ann_dir/train', \
+    'L:/7_UAV_crack_segmentation/ann_dir/val', \
+    'L:/7_UAV_crack_segmentation/ann_dir/test'
+
+for i, j in zip([train_path, val_path, test_path], ['train_percentage.txt', 'val_percentage.txt', 'test_percentage.txt']):
+
+    with open(os.path.join('L:/7_UAV_crack_segmentation', j), 'w') as f:
+        for file in os.listdir(i):
+
+            mask = cv2.imread(os.path.join(i, file), cv2.IMREAD_GRAYSCALE)
+            crack_num = mask.sum()
+            crack_percentage = crack_num / (512 * 512)
+
+            if crack_percentage < 0.0005:
+                mask = mask * 0
+                cv2.imwrite(os.path.join(i, file), mask)
+
+            f.write(file + ',' + '{0:.6f}'.format(crack_percentage) + '\n')
