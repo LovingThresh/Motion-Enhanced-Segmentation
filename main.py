@@ -13,8 +13,8 @@ import mmcv
 import random
 # import torchmetrics.functional
 # from mmedit.models import MODELS
-# from mmedit.models import LOSSES
-# from mmseg.models import BACKBONES, HEADS, LOSSES
+from mmedit.models import LOSSES
+from mmseg.models import BACKBONES, HEADS, LOSSES
 
 import torchmetrics
 # import torchsummary
@@ -59,11 +59,12 @@ hyper_params = {
     "batch_size": 4,
     "learning_rate": 1e-4,
     "epochs": 50,
+    # "epochs": 300,
     "threshold": 24,
     "checkpoint": False,
     "Img_Recon": True,
-    "src_path": 'F:/BJM/Motion_Image',
-    "check_path": r'F:\BJM\Motion_Image\2022-08-24-14-59-27.160160\save_model\Epoch_10_eval_16.614881643454233.pt'
+    "src_path": 'E:/BJM/Motion_Image',
+    "check_path": '',
 }
 
 experiment = object
@@ -94,9 +95,9 @@ if train_comet:
 # =                                     Data                                    =
 # ===============================================================================
 
-train_loader, val_loader, test_loader = get_Raw_Motion_Image_Dataset(re_size=raw_size, batch_size=batch_size)
-a = next(iter(train_loader))
-visualize_pair(train_loader, input_size=input_size, crop_size=crop_size, mode=mode)
+train_loader, val_loader, test_loader = get_Motion_Image_Dataset(re_size=raw_size, batch_size=batch_size)
+# a = next(iter(train_loader))
+# visualize_pair(train_loader, input_size=input_size, crop_size=crop_size, mode=mode)
 
 # ===============================================================================
 # =                                     Model                                   =
@@ -104,7 +105,10 @@ visualize_pair(train_loader, input_size=input_size, crop_size=crop_size, mode=mo
 # generator = FPNDense()
 
 if mode == 'image':
-    generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=True, norm='instance', mode=mode)
+    # generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=True, norm='instance', mode=mode)
+    dump_input = torch.rand(2, 3, 512, 512)
+    generator = define_G(3, 3, 64, 'convnext_9blocks', learn_residual=True, norm='instance', mode=mode)
+    dump_output = generator(dump_input.cuda())
 else:
     generator = define_G(3, 2, 64, 'resnet_9blocks', learn_residual=False, norm='instance', mode=mode)
 
@@ -178,8 +182,8 @@ optimizer_ft_G = optim.Adam(generator.parameters(), lr=lr, betas=(0.5, 0.999))
 # exp_lr_scheduler_D = lr_scheduler.CosineAnnealingLR(optimizer_ft_D, int(Epochs / 10))
 # exp_lr_scheduler_G = lr_scheduler.CosineAnnealingLR(optimizer_ft_G, int(Epochs / 10))
 
-exp_lr_scheduler_D = lr_scheduler.StepLR(optimizer_ft_D, step_size=10, gamma=0.8)
-exp_lr_scheduler_G = lr_scheduler.StepLR(optimizer_ft_G, step_size=10, gamma=0.8)
+exp_lr_scheduler_D = lr_scheduler.StepLR(optimizer_ft_D, step_size=20, gamma=0.8)
+exp_lr_scheduler_G = lr_scheduler.StepLR(optimizer_ft_G, step_size=20, gamma=0.8)
 
 # ===============================================================================
 # =                                  Copy & Upload                              =

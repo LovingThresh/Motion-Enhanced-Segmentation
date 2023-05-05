@@ -41,3 +41,22 @@ def parameters_is_training(model):
     for name, param in model.named_parameters():
         if param.requires_grad:
             print(name)
+
+
+from model import define_G
+mode = 'segmentation'
+model = define_G(3, 2, 64, 'resnet_9blocks', learn_residual=False, norm='instance', mode=mode)
+
+
+def get_changed_model(model_path):
+    model_torch_dict = torch.load(model_path)
+    segmentation_model_torch_dict_source = dict_slice(model_torch_dict, 0, 70)
+    segmentation_model_torch_dict_target = model.state_dict()
+    segmentation_model_torch_dict = dict_load(segmentation_model_torch_dict_source, segmentation_model_torch_dict_target)
+
+    torch.save(segmentation_model_torch_dict, model_path[:-3] + '_seg.pt')
+
+
+get_changed_model(r'M:\MotionBlur-Segmentation\关键模型\512_Blur_orientation\Epoch_199_eval_37.90572070417733.pt')
+blur_model_dict = torch.load(r'M:\MotionBlur-Segmentation\关键模型\512_Blur_orientation\Epoch_199_eval_37.90572070417733.pt')
+seg_model_dict = torch.load(r'M:\MotionBlur-Segmentation\关键模型\512_Blur_orientation\Epoch_199_eval_37.90572070417733_seg.pt')
