@@ -104,7 +104,10 @@ train_loader, val_loader, test_loader = get_Motion_Image_Dataset(re_size=raw_siz
 # generator = FPNDense()
 
 if mode == 'image':
-    generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=True, norm='instance', mode=mode)
+    # generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=True, norm='instance', mode=mode)
+    dump_input = torch.rand(2, 3, 512, 512)
+    generator = define_G(3, 3, 64, 'convnext_9blocks', learn_residual=True, norm='instance', mode=mode)
+    dump_output = generator(dump_input.cuda())
 else:
     generator = define_G(3, 2, 64, 'resnet_9blocks', learn_residual=False, norm='instance', mode=mode)
 
