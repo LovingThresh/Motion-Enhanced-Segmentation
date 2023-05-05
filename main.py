@@ -58,7 +58,7 @@ hyper_params = {
     "input_size": (3, 512, 512),
     "batch_size": 4,
     "learning_rate": 1e-4,
-    "epochs": 200,
+    "epochs": 50,
     "threshold": 24,
     "checkpoint": False,
     "Img_Recon": True,
