@@ -1145,7 +1145,7 @@ class ConvNeXt(BaseModule):
     def __init__(self,
                  arch='tiny',
                  in_channels=3,
-                 stem_patch_size=4,
+                 stem_patch_size=2,
                  norm_cfg=None,
                  act_cfg=None,
                  linear_pw_conv=True,
@@ -1363,7 +1363,6 @@ class ConvNextGenerator(nn.Module):
             ]
 
         img_head += [
-            nn.UpsamplingNearest2d(scale_factor=2),
             ConvModule(
                 in_channels=base_channels,
                 out_channels=out_channels,

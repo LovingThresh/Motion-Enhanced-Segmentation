@@ -59,15 +59,15 @@ val_data_txt = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/val.txt'
 test_data_txt = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/test.txt'
 
 raw_train_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/train/img/'
-raw_blur_train_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/train/blur_img_9_14/'
+raw_blur_train_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/train/blur_img/'
 raw_train_mask_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/train/mask/'
 
 raw_val_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/val/img/'
-raw_blur_val_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/val/blur_img_9_14/'
+raw_blur_val_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/val/blur_img/'
 raw_val_mask_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/val/mask/'
 
 raw_test_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/test/img/'
-raw_blur_test_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/test/blur_img_9_14/'
+raw_blur_test_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/test/blur_img/'
 raw_test_mask_dir = 'L:/crack_segmentation_in_UAV_images/earthquake_crack/test/mask/'
 
 

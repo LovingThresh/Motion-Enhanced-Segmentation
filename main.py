@@ -54,11 +54,11 @@ hyper_params = {
     "mode": 'image',
     "ex_number": 'EDSR_3080Ti_Image',
     "raw_size": (3, 512, 512),
-    "crop_size": (3, 512, 512),
-    "input_size": (3, 512, 512),
+    "crop_size": (3, 256, 256),
+    "input_size": (3, 256, 256),
     "batch_size": 4,
     "learning_rate": 1e-4,
-    "epochs": 50,
+    "epochs": 20,
     # "epochs": 300,
     "threshold": 24,
     "checkpoint": False,
@@ -95,7 +95,7 @@ if train_comet:
 # =                                     Data                                    =
 # ===============================================================================
 
-train_loader, val_loader, test_loader = get_Motion_Image_Dataset(re_size=raw_size, batch_size=batch_size)
+train_loader, val_loader, test_loader = get_Raw_Motion_Image_Dataset(re_size=raw_size, batch_size=batch_size)
 # a = next(iter(train_loader))
 # visualize_pair(train_loader, input_size=input_size, crop_size=crop_size, mode=mode)
 
@@ -105,9 +105,9 @@ train_loader, val_loader, test_loader = get_Motion_Image_Dataset(re_size=raw_siz
 # generator = FPNDense()
 
 if mode == 'image':
-    # generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=True, norm='instance', mode=mode)
+    generator = define_G(3, 3, 64, 'resnet_9blocks', learn_residual=True, norm='instance', mode=mode)
     dump_input = torch.rand(2, 3, 512, 512)
-    generator = define_G(3, 3, 64, 'convnext_9blocks', learn_residual=True, norm='instance', mode=mode)
+    # generator = define_G(3, 3, 64, 'convnext_9blocks', learn_residual=True, norm='instance', mode=mode)
     dump_output = generator(dump_input.cuda())
 else:
     generator = define_G(3, 2, 64, 'resnet_9blocks', learn_residual=False, norm='instance', mode=mode)
@@ -154,7 +154,8 @@ else:
     loss_function_G_ = {'loss_function_dis': nn.BCELoss()}
 
 loss_function_G = {  # 'content_loss': pixel_loss,
-    'perceptual_loss': perceptual_loss
+    'perceptual_loss': perceptual_loss,
+    'pixel_loss': nn.L1Loss()
 }
 
 eval_function_psnr = torchmetrics.functional.image.psnr.peak_signal_noise_ratio
