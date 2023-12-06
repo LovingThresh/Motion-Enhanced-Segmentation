@@ -63,7 +63,7 @@ class LayerNorm2d(nn.LayerNorm):
                 tensor should be (B, H, W, C). Defaults to "channel_first".
         """
         assert x.dim() == 4, 'LayerNorm2d only supports inputs with shape ' \
-            f'(N, C, H, W), but got tensor with shape {x.shape}'
+                             f'(N, C, H, W), but got tensor with shape {x.shape}'
         if data_format == 'channel_last':
             x = F.layer_norm(x, self.normalized_shape, self.weight, self.bias,
                              self.eps)
@@ -101,7 +101,6 @@ def get_norm_layer(norm_type='instance'):
 def define_G(input_nc, output_nc, ngf, which_model_netG, norm='batch', use_dropout=False, gpu_ids=None,
              use_parallel=True,
              learn_residual=False, mode='image'):
-
     if gpu_ids is None:
         gpu_ids = [0]
     netG = None
@@ -307,9 +306,7 @@ class ResnetBlock(nn.Module):
             blocks = padAndConv[padding_type] + [
                 norm_layer(dim),
                 nn.ReLU(True)
-            ] + [
-                         nn.Dropout(0.5)
-                     ] if use_dropout else [] + padAndConv[padding_type] + [
+            ] + [nn.Dropout(0.5)] if use_dropout else [] + padAndConv[padding_type] + [
                 norm_layer(dim)
             ]
         except:

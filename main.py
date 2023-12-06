@@ -111,6 +111,9 @@ if mode == 'image':
     dump_output = generator(dump_input.cuda())
 else:
     generator = define_G(3, 2, 64, 'resnet_9blocks', learn_residual=False, norm='instance', mode=mode)
+    for i, (name, param) in enumerate(generator.named_parameters()):
+        if int(i) <= 5:
+            param.requires_grad = False
 
 # generator = Net(mode=mode)
 # dict_load(generator.segmentation_model.state_dict(), torch.load('for_segmentation_model.pt'))

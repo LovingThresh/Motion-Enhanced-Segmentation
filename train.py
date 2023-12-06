@@ -45,7 +45,7 @@ device = accelerator.device
 # val_data_txt = 'L:/crack_segmentation_in_UAV_images/Dataset/val.txt'
 # test_data_txt = 'L:/crack_segmentation_in_UAV_images/Dataset/test.txt'
 #
-# raw_train_dir = 'L:/crack_segmentation_in_UAV_images/Dataset/train/img/A/'
+# raw_train_dir = 'L:/crack_segmentation_in_UAV_images/Dataset/train/img/'
 # raw_train_mask_dir = 'L:/crack_segmentation_in_UAV_images/Dataset/train/mask/'
 #
 # raw_val_dir = 'L:/crack_segmentation_in_UAV_images/Dataset/val/img/'

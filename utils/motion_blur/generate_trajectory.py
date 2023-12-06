@@ -4,7 +4,7 @@ from math import ceil
 
 
 class Trajectory(object):
-    def __init__(self, canvas=64, iters=2000, max_len=60, expl=None, path_to_save=None):
+    def __init__(self, canvas=64, iters=200, max_len=60, expl=None, path_to_save=None):
         """
         Generates a variety of random motion trajectories in continuous domain as in [Boracchi and Foi 2012]. Each
         trajectory consists of a complex-valued vector determining the discrete positions of a particle following a
@@ -48,12 +48,12 @@ class Trajectory(object):
         tot_length = 0
         big_expl_count = 0
         # how to be near the previous position
-        # TODO: I can change this paramether for 0.1 and make kernel at all image
+        # TODO: I can change this parameter for 0.1 and make kernel at all image
         centripetal = 0.7 * np.random.uniform(0, 1)
         # probability of big shake
-        prob_big_shake = 0.2 * np.random.uniform(0, 1)
+        # prob_big_shake = 0.2 * np.random.uniform(0, 1)
         # term determining, at each sample, the random component of the new direction
-        gaussian_shake = 10 * np.random.uniform(0, 1)
+        gaussian_shake = 0.7 * np.random.uniform(0, 1)
         init_angle = 360 * np.random.uniform(0, 1)
 
         img_v0 = np.sin(np.deg2rad(init_angle))
@@ -68,22 +68,23 @@ class Trajectory(object):
         x = np.array([complex(real=0, imag=0)] * self.iters)
 
         for t in range(0, self.iters - 1):
-            if np.random.uniform() < prob_big_shake * self.expl:
+            if np.random.uniform() < self.expl:
+                # if np.random.uniform() < 0.02:
                 next_direction = 2 * v * (np.exp(complex(real=0, imag=np.pi + (np.random.uniform() - 0.5))))
                 big_expl_count += 1
             else:
                 next_direction = 0
-
+            # next_direction = 0
             dv = next_direction + self.expl * (
-                gaussian_shake * complex(real=np.random.randn(), imag=np.random.randn()) - centripetal * x[t]) * (
-                                      self.max_len / (self.iters - 1))
+                    gaussian_shake * complex(real=np.random.randn(), imag=np.random.randn()) - centripetal * x[t]) * (
+                         self.max_len / (self.iters - 1))
 
             v += dv
             v = (v / float(np.abs(v))) * (self.max_len / float((self.iters - 1)))
             x[t + 1] = x[t] + v
             tot_length = tot_length + abs(x[t + 1] - x[t])
 
-        # centere the motion
+        # center the motion
         x += complex(real=-np.min(x.real), imag=-np.min(x.imag))
         x = x - complex(real=x[0].real % 1., imag=x[0].imag % 1.) + complex(1, 1)
         x += complex(real=ceil((self.canvas - np.max(x.real)) / 2), imag=ceil((self.canvas - np.max(x.imag)) / 2))
